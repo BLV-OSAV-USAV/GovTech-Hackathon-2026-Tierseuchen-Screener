@@ -1,1 +1,69 @@
 # GovTech-Hackathon-2026-Tierseuchen-Screener
+
+[Challenge-Link](https://govtech.digisus-lab.ch/project/20)
+
+
+## Problem und Zielgruppe
+
+Die internationale Tierseuchenlage verändert sich laufend und relevante Informationen sind auf viele unterschiedliche Quellen verteilt. Heute müssen Fachpersonen diese Informationen manuell suchen, lesen, bewerten und zusammenführen. Das ist zeitaufwendig, fehleranfällig und erschwert eine schnelle Reaktion auf neue Risiken.
+
+Es besteht daher Bedarf an einem intelligenten System, das:
+
+* internationale Quellen automatisch überwacht
+* relevante Meldungen erkennt und strukturiert
+* Trends und Risiken frühzeitig sichtbar macht
+* Fachpersonen bei Lagebeurteilung und Risikoeinschätzung unterstützt
+
+Das Problem betrifft insbesondere:
+
+* Fachpersonen in Veterinärämtern und Tiergesundheitsdiensten
+* Behörden im Bereich Tierseuchen, Landwirtschaft und Gesundheit
+* Expertinnen und Experten für Risikobeurteilung
+* Landwirtschafts- und Nutztierbetriebe indirekt
+* Organisationen im Bereich Tiergesundheit und Monitoring
+* Forschungseinrichtungen und Fachstellen für Epidemiologie
+
+## (Nicht) verfügbare Daten
+
+Verfügbare Daten und Ressourcen könnten sein:
+
+* Öffentliche Meldungen internationaler Organisationen wie World Organisation for Animal Health, World Health Organization oder Food and Agriculture Organization
+* Berichte nationaler Veterinär- und Gesundheitsbehörden in Europa
+* Nachrichtenquellen und Fachportale zu Tiergesundheit und Landwirtschaft
+* Wissenschaftliche Publikationen und Datenbanken
+* Historische Daten zu Tierseuchenfällen, betroffenen Regionen und Tierarten
+* Geografische Daten zu Ländern, Regionen und Tierbeständen
+* Open-Data-Quellen und APIs mit Informationen zu Ausbrüchen und Meldungen
+* Manuell erstellte Lageberichte und Risikobeurteilungen als Trainings- oder Vergleichsdaten
+* Übersetzungsdienste und Sprachmodelle für mehrsprachige Quellen
+
+## Ziel für den Hackathon
+
+Das Ziel für den Hackathon ist es, einen funktionierenden Prototypen für einen Tierseuchen-Screener zu entwickeln, der internationale Quellen automatisch analysiert, relevante Informationen extrahiert und übersichtlich für die Risikobeurteilung in der Schweiz aufbereitet.
+
+## Einschränkungen
+
+Datenschutz und Urheberrecht bei der Nutzung externer Quellen beachten
+Nur öffentlich verfügbare oder freigegebene Daten verwenden
+Ergebnisse müssen nachvollziehbar und transparent sein
+Quellen und Unsicherheiten klar kennzeichnen
+
+## Erwarteter Nutzen
+
+Wenn das Problem gelöst wäre, könnten relevante Tierseuchenmeldungen deutlich schneller erkannt und bewertet werden. Fachpersonen müssten weniger Zeit für die manuelle Suche und Sichtung von Informationen aufwenden und könnten sich stärker auf die eigentliche Analyse und Entscheidungsfindung konzentrieren.
+
+Der Nutzen wäre unter anderem:
+
+- schnellere Erkennung neuer Tierseuchenrisiken
+- frühzeitigere Warnungen für die Schweiz
+- bessere Übersicht über die Seuchenlage in Europa
+- strukturierte und vergleichbare Informationen aus vielen Quellen
+- Entlastung von Expertinnen und Experten bei repetitiven Aufgaben
+- schnellere und fundiertere Risikoeinschätzungen
+- bessere Entscheidungsgrundlagen für Behörden und Fachstellen
+- höhere Reaktionsfähigkeit bei neuen Ausbrüchen
+- indirekter Schutz von Tiergesundheit, Landwirtschaft und öffentlicher Gesundheit
+
+## Nachhaltigkeit
+
+Nach dem Hackathon können erfolgreiche Ideen und Prototypen in bestehende Arbeiten und Projekte des Bundesamts BLV zur Erneuerung des Radarbulletin-Prozesses einfliessen. Ziel ist es, geeignete Ansätze schrittweise weiterzuentwickeln und in bestehende Abläufe zu integrieren.
