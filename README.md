@@ -25,7 +25,9 @@ Das Problem betrifft insbesondere:
 
 ## (Nicht) verfügbare Daten
 
-Verfügbare Daten und Ressourcen könnten sein:
+Unter `data/structured` befinden sich anonymisierte Datenexporte aus drei Tiergesundheitsdatenbanken: **ADIS**, **EMPRES-I** und **WAHIS** vor. Diese strukturierte Datensätze (`.csv`) können als Ausgang für die Challenge benutzt werden. Weitere Infos im [Data-README](data/structured/README.md).
+
+(Weitere) verfügbare Daten und Ressourcen könnten sein:
 
 * Öffentliche Meldungen internationaler Organisationen wie World Organisation for Animal Health, World Health Organization oder Food and Agriculture Organization
 * Berichte nationaler Veterinär- und Gesundheitsbehörden in Europa
