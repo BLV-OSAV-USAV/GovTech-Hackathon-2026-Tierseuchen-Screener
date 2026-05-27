@@ -1,0 +1,14 @@
+numpy
+pandas
+openpyxl
+matplotlib
+requests
+seaborn
+notebook
+pyarrow
+geopandas
+shapely
+pyproj
+contextily
+simplekml
+fiona
