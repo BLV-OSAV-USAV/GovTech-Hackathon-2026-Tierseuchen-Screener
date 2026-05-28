@@ -1,12 +1,12 @@
 import { Head } from '@inertiajs/react';
-import { Map as MapIcon, List as ListIcon } from 'lucide-react';
+import { Map as MapIcon, List as ListIcon, BarChart3 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import CaseList from '@/components/dashboard/case-list';
 import FilterPanel from '@/components/dashboard/filter-panel';
 import LagebildHeader from '@/components/dashboard/lagebild-header';
 import PlayBar from '@/components/dashboard/play-bar';
-import StatsSidebar from '@/components/dashboard/stats-sidebar';
+import StatsView from '@/components/dashboard/stats-view';
 import CaseMap, { type Case } from '@/components/map/case-map';
 import ClientOnly from '@/components/map/client-only';
 import DashboardLayout from '@/layouts/dashboard-layout';
@@ -35,7 +35,7 @@ const DEFAULT_FROM = '2026-03-01T00:00';
 const DEFAULT_TO = '2026-05-28T23:59';
 
 export default function DashboardMap({ cases }: Props) {
-    const [view, setView] = useState<'map' | 'list'>('map');
+    const [view, setView] = useState<'map' | 'list' | 'stats'>('map');
     const [population, setPopulation] = useState<Population[]>(ALL_POPULATIONS);
     const [dateFrom, setDateFrom] = useState(DEFAULT_FROM);
     const [dateTo, setDateTo] = useState(DEFAULT_TO);
@@ -52,7 +52,8 @@ export default function DashboardMap({ cases }: Props) {
         );
     };
 
-    const effectiveTo = playing ? playCursor : dateTo;
+    const cursorScrubbed = playCursor !== dateTo;
+    const effectiveTo = playing || cursorScrubbed ? playCursor : dateTo;
 
     const filtered = useMemo(() => {
         return cases.filter((c) => {
@@ -110,39 +111,32 @@ export default function DashboardMap({ cases }: Props) {
                             <ListIcon className="size-3.5" />
                             Liste
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setView('stats')}
+                            className={`inline-flex items-center gap-1.5 rounded px-3 py-1 ${
+                                view === 'stats'
+                                    ? 'bg-foreground text-background'
+                                    : 'text-muted-foreground hover:bg-muted'
+                            }`}
+                        >
+                            <BarChart3 className="size-3.5" />
+                            Statistik
+                        </button>
                     </div>
                     {view === 'map' ? (
-                        <>
-                            <div className="relative flex-1 overflow-hidden rounded-md border">
-                                <ClientOnly
-                                    fallback={
-                                        <div className="flex h-full items-center justify-center bg-muted/30 text-sm text-muted-foreground">
-                                            Karte wird geladen…
-                                        </div>
-                                    }
-                                >
-                                    <CaseMap cases={filtered} />
-                                </ClientOnly>
-                            </div>
-                            <PlayBar
-                                from={dateFrom}
-                                to={dateTo}
-                                cursor={playCursor}
-                                onCursorChange={setPlayCursor}
-                                playing={playing}
-                                onTogglePlay={() => {
-                                    if (!playing && (playCursor >= dateTo || playCursor < dateFrom)) {
-                                        setPlayCursor(dateFrom);
-                                    }
-                                    setPlaying((p) => !p);
-                                }}
-                                onReset={() => {
-                                    setPlaying(false);
-                                    setPlayCursor(dateTo);
-                                }}
-                            />
-                        </>
-                    ) : (
+                        <div className="relative flex-1 overflow-hidden rounded-md border">
+                            <ClientOnly
+                                fallback={
+                                    <div className="flex h-full items-center justify-center bg-muted/30 text-sm text-muted-foreground">
+                                        Karte wird geladen…
+                                    </div>
+                                }
+                            >
+                                <CaseMap cases={filtered} />
+                            </ClientOnly>
+                        </div>
+                    ) : view === 'list' ? (
                         <div className="flex-1 overflow-hidden">
                             <CaseList
                                 cases={filtered}
@@ -150,9 +144,33 @@ export default function DashboardMap({ cases }: Props) {
                                 centerLng={centerLng}
                             />
                         </div>
+                    ) : (
+                        <div className="flex-1 overflow-hidden">
+                            <StatsView cases={filtered} />
+                        </div>
                     )}
+                    <PlayBar
+                        from={dateFrom}
+                        to={dateTo}
+                        cursor={playCursor}
+                        onCursorChange={setPlayCursor}
+                        playing={playing}
+                        onTogglePlay={() => {
+                            if (!playing && (playCursor >= dateTo || playCursor < dateFrom)) {
+                                setPlayCursor(dateFrom);
+                            }
+                            setPlaying((p) => !p);
+                        }}
+                        onReset={() => {
+                            setPlaying(false);
+                            setPlayCursor(dateFrom);
+                        }}
+                        onSkipToEnd={() => {
+                            setPlaying(false);
+                            setPlayCursor(dateTo);
+                        }}
+                    />
                 </div>
-                <StatsSidebar cases={filtered} />
             </div>
         </DashboardLayout>
     );
