@@ -1,0 +1,69 @@
+# Mirrors code/frontend/ to the public Laravel repository on each relevant push to main.
+#
+# Runs only on the StanBarrows fork (skipped on BLV-OSAV-USAV upstream).
+#
+# Required secret (fork Settings → Secrets and variables → Actions):
+#   MY_GITHUB_TOKEN — fine-grained or classic PAT for StanBarrows with
+#   Contents: Read and write on GovTech-Hackathon-2026-Tierseuchen-Screener-Laravel
+#
+# Target: https://github.com/StanBarrows/GovTech-Hackathon-2026-Tierseuchen-Screener-Laravel
+
+name: stanbarrows-push-laravel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'code/frontend/**'
+      - '.github/workflows/stanbarrows-push-laravel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    if: github.repository == 'StanBarrows/GovTech-Hackathon-2026-Tierseuchen-Screener'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Clone target repository
+        env:
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TARGET_URL="https://x-access-token:${MY_GITHUB_TOKEN}@github.com/StanBarrows/GovTech-Hackathon-2026-Tierseuchen-Screener-Laravel.git"
+
+          if git ls-remote --heads "$TARGET_URL" main | grep -q .; then
+            git clone "$TARGET_URL" target-repo
+          else
+            mkdir target-repo
+            git -C target-repo init -b main
+            git -C target-repo remote add origin "$TARGET_URL"
+          fi
+
+      - name: Sync code/frontend to target
+        run: |
+          rsync -a --delete \
+            --exclude='.git' \
+            code/frontend/ target-repo/
+
+      - name: Commit and push
+        working-directory: target-repo
+        env:
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --staged --quiet; then
+            echo "No changes to sync."
+            exit 0
+          fi
+
+          git commit -m "Sync from ${{ github.repository }}@${{ github.sha }}"
+          git push "https://x-access-token:${MY_GITHUB_TOKEN}@github.com/StanBarrows/GovTech-Hackathon-2026-Tierseuchen-Screener-Laravel.git" HEAD:main
