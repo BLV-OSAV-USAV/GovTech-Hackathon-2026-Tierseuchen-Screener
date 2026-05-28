@@ -36,4 +36,10 @@ frontend/storage/*.key
 frontend/bootstrap/cache/*.php
 
 
-data/unstructured/gefluegelnews/raw_html/
+data/unstructured/*/raw_html/
+data/unstructured/*/raw_json/
+data/unstructured/*/articles.jsonl
+data/unstructured/*/disease_articles.jsonl
+data/unstructured/*/disease_reports.jsonl
+data/unstructured/*/manifest.jsonl
+data/unstructured/*/parse_errors.jsonl
