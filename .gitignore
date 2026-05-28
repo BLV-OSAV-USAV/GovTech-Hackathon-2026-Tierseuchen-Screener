@@ -23,3 +23,14 @@ Thumbs.db
 ehthumbs.db
 AGENTS.md
  _ gh.code-workspace
+
+# Laravel / Node (frontend/)
+frontend/vendor/
+frontend/node_modules/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/public/build/
+frontend/public/hot
+frontend/storage/*.key
+frontend/bootstrap/cache/*.php
