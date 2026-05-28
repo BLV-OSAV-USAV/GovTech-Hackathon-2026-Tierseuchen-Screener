@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HPAI Dashboard — Wireframe (PoC)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Balsamiq+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#4a4a4a; --ink2:#8a8a8a; --paper:#fff; --fill:#f2f2f2; --fill2:#e6e6e6;
+  --blue:#2f6fb0; --red:#d2564f; --amber:#e0a300; --green:#5aa84f;
+  --g1:#5e5e5e; --g2:#9a9a9a; --g3:#cfcfcf;
+  --canvas:#d8d8d8;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:'Balsamiq Sans',cursive;
+  background:var(--canvas);
+  color:var(--ink);
+  padding:26px 18px 60px;
+  -webkit-font-smoothing:antialiased;
+}
+.defs{position:absolute;width:0;height:0}
+
+/* sketchy border helper */
+.sk{position:relative;background:var(--paper)}
+.sk::before{content:"";position:absolute;inset:0;border:2px solid var(--ink);border-radius:6px;filter:url(#rough);pointer-events:none}
+.sk.thin::before{border-width:1.5px}
+.sk.fill{background:var(--fill)}
+.sk.fill2{background:var(--fill2)}
+
+.window{max-width:1240px;margin:0 auto;background:var(--paper);border-radius:8px}
+.window::before{border-width:2.5px}
+
+/* title / browser chrome */
+.titlebar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:2px solid var(--ink);position:relative}
+.titlebar .dots{display:flex;gap:6px}
+.dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink)}
+.urlbar{flex:1;display:flex;align-items:center;height:26px;padding:0 12px;color:var(--ink2);font-size:12px;max-width:520px;margin:0 auto}
+.titlebar .lang{font-size:12px;color:var(--ink2)}
+
+/* app bar */
+.appbar{display:flex;align-items:center;gap:14px;padding:12px 16px 0}
+.appbar .title{font-weight:700;font-size:18px}
+.appbar .title small{font-weight:400;color:var(--ink2);font-size:12px;margin-left:6px}
+.appbar .grow{flex:1}
+.tabs{display:flex;gap:8px;align-items:flex-end}
+.tab{padding:7px 16px 9px;cursor:pointer;background:var(--fill);color:var(--ink2);position:relative;border-radius:6px 6px 0 0;font-size:14px}
+.tab.on{background:var(--paper);color:var(--ink);font-weight:700}
+.tab.on::before{border-bottom:none}
+.btn{cursor:pointer;background:var(--paper);padding:7px 14px;font-size:13px;font-family:inherit;color:var(--ink);display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:var(--fill)}
+.btn.prim{background:#eaf2fb}
+.btn .ic{font-size:14px}
+.toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:var(--ink);user-select:none}
+.toggle input{display:none}
+.tk{width:34px;height:18px;border-radius:12px;background:var(--fill2);position:relative;border:1.5px solid var(--ink);transition:.15s}
+.tk::after{content:"";position:absolute;top:1.5px;left:2px;width:11px;height:11px;border-radius:50%;background:var(--ink);transition:.15s}
+.toggle input:checked + .tk{background:#dcecff}
+.toggle input:checked + .tk::after{left:18px;background:var(--blue)}
+
+/* main grid */
+.main{display:grid;grid-template-columns:226px 1fr 268px;gap:14px;padding:14px 16px 18px}
+.main.list-mode{grid-template-columns:226px 1fr}
+.panel{padding:13px}
+.panel h3{margin:0 0 11px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+
+/* form controls */
+.field{margin-bottom:13px}
+.field label{display:block;font-size:13px;margin-bottom:5px}
+.field .opt{color:var(--ink2);font-size:11px}
+.select{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;font-size:13px;cursor:pointer;background:var(--paper)}
+.select .cv{color:var(--ink)}
+.select .ch{color:var(--ink2)}
+.dates{display:flex;gap:8px}
+.dates .d{flex:1;padding:7px 9px;font-size:12px;color:var(--ink);display:flex;align-items:center;gap:6px}
+.dates .d .ic{color:var(--ink2)}
+.checks{display:flex;flex-direction:column;gap:8px}
+.chk{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;padding:5px 8px}
+.chk .box{width:16px;height:16px;border:2px solid var(--ink);border-radius:3px;position:relative;flex:none}
+.chk.on .box::after{content:"✓";position:absolute;inset:-3px 0 0 1px;font-size:14px;font-weight:700}
+.chk.off{color:var(--ink2)}
+.chk .shp{margin-left:auto;color:var(--ink2)}
+.meta{font-size:11px;color:var(--ink2);line-height:1.7;margin-top:6px}
+.meta b{color:var(--ink)}
+hr.sk-hr{border:none;height:2px;background:var(--fill2);margin:14px 0;border-radius:2px}
+
+/* MAP */
+.maparea{position:relative;height:430px;overflow:hidden;border-radius:6px;
+  background:var(--paper);
+  background-image:radial-gradient(var(--g3) 1px, transparent 1.5px);
+  background-size:18px 18px;background-position:6px 6px}
+.maparea svg.geo{position:absolute;inset:0;width:100%;height:100%}
+.marker{position:absolute;transform:translate(-50%,-50%);cursor:pointer;background:none;border:none;padding:0;line-height:0}
+.marker svg{display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.marker:hover{transform:translate(-50%,-50%) scale(1.18)}
+.maptag{position:absolute;font-size:11px;color:var(--ink2);background:rgba(255,255,255,.7);padding:1px 5px;border-radius:3px}
+.legend{position:absolute;left:12px;bottom:12px;padding:9px 11px;font-size:11px;background:rgba(255,255,255,.93)}
+.legend .lr{display:flex;align-items:center;gap:7px;margin:3px 0}
+.legend .lr small{color:var(--ink2)}
+.predbar{position:absolute;top:12px;right:12px;padding:7px 10px;background:rgba(255,255,255,.93);font-size:12px}
+.maphead{position:absolute;top:12px;left:12px;font-size:13px;font-weight:700;background:rgba(255,255,255,.85);padding:2px 8px;border-radius:4px}
+
+/* timeline */
+.timeline{display:flex;align-items:center;gap:12px;margin-top:12px;padding:9px 12px}
+.play{width:34px;height:34px;border-radius:50%;cursor:pointer;background:var(--paper);display:flex;align-items:center;justify-content:center;flex:none}
+.play:hover{background:var(--fill)}
+.track{flex:1;height:8px;border-radius:6px;background:var(--fill2);position:relative;border:1.5px solid var(--ink)}
+.head{position:absolute;top:-5px;width:14px;height:14px;border-radius:50%;background:var(--paper);border:2px solid var(--ink);left:0;transform:translateX(-50%);transition:left .05s linear}
+.tdate{font-size:11px;color:var(--ink2);white-space:nowrap}
+
+/* STATS */
+.hist{height:170px;display:flex;align-items:flex-end;gap:8px;padding:6px 2px 0}
+.hcol{flex:1;display:flex;flex-direction:column-reverse;align-items:center;gap:0}
+.hseg{width:78%;border:1.5px solid var(--ink);border-bottom:none}
+.hcol .hx{font-size:10px;color:var(--ink2);margin-top:5px;border:none}
+.hseg.w{background:var(--g1)} .hseg.p{background:var(--g2)} .hseg.c{background:var(--g3)}
+.hseg:first-of-type{border-bottom:1.5px solid var(--ink)}
+.axis{display:flex;justify-content:space-between;font-size:10px;color:var(--ink2);margin-top:4px}
+.hlegend{display:flex;gap:12px;margin-top:12px;font-size:11px;flex-wrap:wrap}
+.hlegend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border:1.5px solid var(--ink)}
+.sumrow{display:flex;justify-content:space-between;font-size:12px;padding:5px 2px;border-bottom:1px dashed var(--fill2)}
+.sumrow b{font-weight:700}
+
+/* LIST */
+.tablewrap{padding:6px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1.5px dashed var(--fill2)}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);cursor:pointer}
+th .sort{color:var(--ink2);font-size:10px}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--fill)}
+.prio{display:inline-flex;align-items:center;gap:7px}
+.pdot{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--ink)}
+.pdot.high{background:var(--red)} .pdot.med{background:var(--amber)} .pdot.low{background:var(--green)}
+.shape{display:inline-block;vertical-align:middle}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(60,60,60,.45);display:none;align-items:center;justify-content:center;z-index:50}
+.overlay.on{display:flex}
+.modal{width:380px;max-width:92vw;background:var(--paper);padding:18px 20px}
+.modal h2{margin:0 0 3px;font-size:18px}
+.modal .sub{color:var(--ink2);font-size:12px;margin-bottom:14px}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--fill2)}
+.kv .k{color:var(--ink2)}
+.modal .close{position:absolute;top:10px;right:14px;cursor:pointer;font-size:20px;color:var(--ink2)}
+.modal .badge{display:inline-flex;align-items:center;gap:7px;font-size:13px;margin:8px 0 4px}
+.modal .row-btn{display:flex;gap:8px;margin-top:16px}
+
+/* callouts */
+.note{position:absolute;font-size:11.5px;line-height:1.35;background:#fff7d6;border:1.5px solid #d9c97a;border-radius:5px;padding:6px 9px;max-width:185px;color:#6b5e2a;z-index:8;box-shadow:1px 2px 0 rgba(0,0,0,.06)}
+.note::after{content:"";position:absolute;width:9px;height:9px;background:#fff7d6;border-right:1.5px solid #d9c97a;border-bottom:1.5px solid #d9c97a}
+.notes-off .note{display:none}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:7px;font-size:13px;opacity:0;transition:.25s;z-index:60;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.streams{opacity:0;transition:.3s}
+.streams.on{opacity:1}
+.stream{stroke:var(--blue);stroke-width:1.6;fill:none;stroke-dasharray:5 6;animation:dash 1.1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-22}}
+</style>
+</head>
+<body>
+<svg class="defs"><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4"/></filter>
+<filter id="soft"><feGaussianBlur stdDeviation="7"/></filter></svg>
+
+<div class="window sk">
+  <!-- browser chrome -->
+  <div class="titlebar">
+    <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+    <div class="urlbar sk thin">⌂ &nbsp; esa-platform.local / hpai-dashboard / poc</div>
+    <div class="lang">DE ▾</div>
+  </div>
+
+  <!-- app bar -->
+  <div class="appbar">
+    <div class="title">HPAI Lagebild <small>Proof of Concept · Wireframe</small></div>
+    <div class="grow"></div>
+    <label class="toggle"><input type="checkbox" id="notesToggle" checked><span class="tk"></span>Notizen</label>
+    <button class="btn prim sk thin" id="exportBtn"><span class="ic">⭳</span> Export CSV / XLSX ▾</button>
+  </div>
+
+  <!-- tabs -->
+  <div class="appbar" style="padding-top:12px">
+    <div class="tabs">
+      <div class="tab on sk thin" data-view="map">▣ Map / Heatmap</div>
+      <div class="tab sk thin" data-view="list">☰ Liste</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main">
+
+    <!-- FILTERS -->
+    <aside class="panel sk">
+      <h3>Filter</h3>
+      <div class="field">
+        <label>Tierseuche</label>
+        <div class="select sk thin"><span class="cv">HPAI · aviäre Influenza</span><span class="ch">▾</span></div>
+        <div class="meta">PoC fix: <b>HPAI</b></div>
+      </div>
+      <div class="field">
+        <label>Typ (Population)</label>
+        <div class="checks">
+          <div class="chk on sk thin" data-type="wild"><span class="box"></span>Wild <span class="shp">▲</span></div>
+          <div class="chk on sk thin" data-type="poultry"><span class="box"></span>Poultry <span class="shp">●</span></div>
+          <div class="chk on sk thin" data-type="captive"><span class="box"></span>Captive <span class="shp">■</span></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Zeitraum <span class="opt">(optional)</span></label>
+        <div class="dates">
+          <div class="d sk thin"><span class="ic">▦</span><span id="dStart">01.03.26</span></div>
+          <div class="d sk thin"><span class="ic">▦</span><span id="dEnd">24.04.26</span></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Spezies</label>
+        <div class="select sk thin"><span class="cv">Alle Spezies</span><span class="ch">▾</span></div>
+      </div>
+      <div class="field">
+        <label>Subtype</label>
+        <div class="select sk thin"><span class="cv">H5N1</span><span class="ch">▾</span></div>
+        <div class="meta">bei HPAI v. a. <b>H5N1</b></div>
+      </div>
+      <hr class="sk-hr">
+      <div class="meta">Letztes Update<br>ADIS: 2026-05-12 · WAHIS: 2026-05-12</div>
+    </aside>
+
+    <!-- VIEW: MAP -->
+    <main class="view-map">
+      <div class="maparea sk">
+        <div class="maphead">Verlauf · animierte Heatmap</div>
+        <svg class="geo" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <!-- land blob -->
+          <path d="M12 30 Q30 18 52 24 Q74 20 86 36 Q92 54 80 70 Q60 86 40 82 Q18 80 10 60 Q6 44 12 30 Z"
+                fill="#f4f4f4" stroke="var(--ink)" stroke-width="0.5" vector-effect="non-scaling-stroke" filter="url(#rough)"/>
+          <!-- CH highlight -->
+          <path d="M22 56 Q34 50 48 54 Q58 58 56 66 Q44 74 32 70 Q22 66 22 56 Z"
+                fill="#ececec" stroke="var(--ink2)" stroke-width="0.5" vector-effect="non-scaling-stroke" filter="url(#rough)"/>
+          <text x="38" y="64" font-size="3.4" fill="#b0b0b0" font-family="'Balsamiq Sans'">CH</text>
+          <!-- grayscale heat blobs -->
+          <g filter="url(#soft)" opacity="0.45">
+            <circle cx="33" cy="60" r="9" fill="#9a9a9a"/>
+            <circle cx="52" cy="52" r="8" fill="#888"/>
+            <circle cx="45" cy="40" r="7" fill="#9a9a9a"/>
+            <circle cx="26" cy="70" r="5" fill="#b5b5b5"/>
+          </g>
+          <!-- prediction streams (bird flyways) -->
+          <g class="streams" id="streams">
+            <path class="stream" d="M72 12 Q50 40 30 80" marker-end="url(#ah)"/>
+            <path class="stream" d="M84 24 Q55 45 20 70" marker-end="url(#ah)"/>
+            <path class="stream" d="M58 8 Q44 45 34 86" marker-end="url(#ah)"/>
+            <path class="stream" d="M88 42 Q62 56 40 76" marker-end="url(#ah)"/>
+            <path class="stream" d="M66 6 Q40 30 24 58" marker-end="url(#ah)"/>
+          </g>
+          <defs><marker id="ah" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto">
+            <path d="M0 0 L6 3 L0 6 Z" fill="var(--blue)"/></marker></defs>
+        </svg>
+        <!-- markers injected by JS -->
+        <div id="markers"></div>
+
+        <div class="predbar sk thin">
+          <label class="toggle"><input type="checkbox" id="predToggle"><span class="tk"></span>Vogelströme (Predictions)</label>
+        </div>
+        <div class="legend sk thin">
+          <div style="font-weight:700;margin-bottom:4px">Legende</div>
+          <div class="lr"><span class="shape" data-shape="wild"></span> Wild <small>(▲)</small></div>
+          <div class="lr"><span class="shape" data-shape="poultry"></span> Poultry <small>(●)</small></div>
+          <div class="lr"><span class="shape" data-shape="captive"></span> Captive <small>(■)</small></div>
+          <div class="lr" style="margin-top:6px"><span class="pdot high"></span><span class="pdot med"></span><span class="pdot low"></span> Priorität (Ampel)</div>
+        </div>
+
+        <!-- notes -->
+        <div class="note" style="top:60px;right:-150px">Animierte Heatmap über den gewählten Zeitraum (Verläufe)<span style="left:-6px;top:14px;transform:rotate(135deg)"></span></div>
+      </div>
+
+      <!-- timeline -->
+      <div class="timeline sk">
+        <div class="play sk thin" id="playBtn">▶</div>
+        <span class="tdate" id="tlStart">01.03.26</span>
+        <div class="track"><div class="head" id="tlHead"></div></div>
+        <span class="tdate" id="tlEnd">24.04.26</span>
+      </div>
+      <div class="note" style="position:relative;display:inline-block;margin-top:8px;max-width:none;top:0">▶ Abspielen = Heatmap-/Event-Verlauf über die Zeit</div>
+    </main>
+
+    <!-- VIEW: STATS (sidebar, map mode only) -->
+    <aside class="panel sk view-stats">
+      <h3>Statistik</h3>
+      <div style="font-size:12px;color:var(--ink2);margin-bottom:4px">Events über Zeit · nach Typ</div>
+      <div class="hist" id="hist"></div>
+      <div class="axis"><span>Okt</span><span>Events →</span><span>Mai</span></div>
+      <div class="hlegend">
+        <span><span class="sw" style="background:var(--g1)"></span>Wild</span>
+        <span><span class="sw" style="background:var(--g2)"></span>Poultry</span>
+        <span><span class="sw" style="background:var(--g3)"></span>Captive</span>
+      </div>
+      <hr class="sk-hr">
+      <div style="font-size:12px;color:var(--ink2);margin-bottom:6px">Total im Zeitraum</div>
+      <div class="sumrow"><span>Wild</span><b id="sW">0</b></div>
+      <div class="sumrow"><span>Poultry</span><b id="sP">0</b></div>
+      <div class="sumrow"><span>Captive</span><b id="sC">0</b></div>
+      <div class="sumrow" style="border-bottom:none"><span><b>Total</b></span><b id="sT">0</b></div>
+      <div class="note" style="position:relative;display:block;margin-top:12px;max-width:none;top:0">Sidebar-Stats: Achsen Zeit / Events, gruppiert nach Typ</div>
+    </aside>
+
+    <!-- VIEW: LIST -->
+    <main class="view-list" style="display:none;grid-column:2 / span 2">
+      <div class="tablewrap sk">
+        <table>
+          <thead><tr>
+            <th data-sort="prio">Priorität <span class="sort">▾</span></th>
+            <th data-sort="date">Datum <span class="sort">⇅</span></th>
+            <th>Region / Ort</th>
+            <th>Typ</th>
+            <th>Spezies</th>
+            <th>Subtype</th>
+            <th>Fälle</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="listBody"></tbody>
+        </table>
+      </div>
+      <div class="note" style="position:relative;display:inline-block;margin-top:10px;max-width:none;top:0">Liste der letzten Events, sortiert nach Priorität · Zeile anklicken → Details</div>
+    </main>
+
+  </div>
+</div>
+
+<!-- modal -->
+<div class="overlay" id="overlay">
+  <div class="modal sk" style="position:relative">
+    <span class="close" id="modalClose">✕</span>
+    <h2 id="mTitle">—</h2>
+    <div class="sub" id="mSub">—</div>
+    <div class="badge" id="mBadge"></div>
+    <div class="kv"><span class="k">Datum</span><span id="mDate"></span></div>
+    <div class="kv"><span class="k">Region / Ort</span><span id="mLoc"></span></div>
+    <div class="kv"><span class="k">Typ</span><span id="mType"></span></div>
+    <div class="kv"><span class="k">Subtype</span><span id="mSubt"></span></div>
+    <div class="kv"><span class="k">Betroffene Fälle</span><span id="mCases"></span></div>
+    <div class="kv"><span class="k">Status</span><span id="mStatus"></span></div>
+    <div class="kv"><span class="k">Quelle</span><span id="mSource"></span></div>
+    <div class="row-btn">
+      <button class="btn sk thin" id="mZoom">⌖ Auf Karte zentrieren</button>
+      <button class="btn sk thin" id="mClose2">Schliessen</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast sk thin" id="toast"></div>
+
+<script>
+/* ---- data ---- */
+const EV=[
+ {id:1,x:33,y:60,type:'wild',prio:'high',date:'2026-04-21',loc:'Bielersee (BE)',sp:'Graugans',sub:'H5N1',cases:3,status:'bestätigt',src:'WAHIS'},
+ {id:2,x:52,y:52,type:'poultry',prio:'high',date:'2026-04-18',loc:'Bodensee (TG)',sp:'Legehennen-Betrieb',sub:'H5N1',cases:5200,status:'bestätigt',src:'ADIS'},
+ {id:3,x:26,y:70,type:'wild',prio:'med',date:'2026-04-15',loc:'Genfersee (VD)',sp:'Höckerschwan',sub:'H5N1',cases:2,status:'bestätigt',src:'WAHIS'},
+ {id:4,x:47,y:55,type:'wild',prio:'med',date:'2026-04-12',loc:'Zürichsee (ZH)',sp:'Lachmöwe',sub:'H5N1',cases:4,status:'bestätigt',src:'WAHIS'},
+ {id:5,x:45,y:40,type:'poultry',prio:'high',date:'2026-04-10',loc:'Baden-Württemberg (DE)',sp:'Mastpoulet-Betrieb',sub:'H5N1',cases:8800,status:'bestätigt',src:'ADIS'},
+ {id:6,x:62,y:52,type:'wild',prio:'low',date:'2026-04-05',loc:'Vorarlberg (AT)',sp:'Stockente',sub:'H5N1',cases:1,status:'Verdacht',src:'WAHIS'},
+ {id:7,x:38,y:48,type:'captive',prio:'med',date:'2026-03-30',loc:'Aargau (AG)',sp:'Zoo-Vögel',sub:'H5N1',cases:12,status:'bestätigt',src:'ADIS'},
+ {id:8,x:30,y:54,type:'wild',prio:'low',date:'2026-03-22',loc:'Murtensee (FR)',sp:'Reiherente',sub:'H5N1',cases:2,status:'bestätigt',src:'WAHIS'},
+ {id:9,x:55,y:64,type:'wild',prio:'med',date:'2026-03-15',loc:'Luganersee (TI)',sp:'Kormoran',sub:'H5N5',cases:3,status:'bestätigt',src:'WAHIS'},
+ {id:10,x:42,y:34,type:'captive',prio:'low',date:'2026-03-08',loc:'Bayern (DE)',sp:'Falknerei',sub:'H5N1',cases:6,status:'Verdacht',src:'ADIS'},
+];
+const PCOL={high:'var(--red)',med:'var(--amber)',low:'var(--green)'};
+const PRANK={high:3,med:2,low:1};
+const TLABEL={wild:'Wild',poultry:'Poultry',captive:'Captive'};
+const activeTypes=new Set(['wild','poultry','captive']);
+
+/* shape svg */
+function shapeSVG(type,fill,size=18){
+  const f=fill,s='var(--ink)';
+  if(type==='wild')return `<svg width="${size}" height="${size}" viewBox="0 0 18 18"><path d="M9 2 L16 15 L2 15 Z" fill="${f}" stroke="${s}" stroke-width="1.4" filter="url(#rough)"/></svg>`;
+  if(type==='poultry')return `<svg width="${size}" height="${size}" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" fill="${f}" stroke="${s}" stroke-width="1.4" filter="url(#rough)"/></svg>`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 18 18"><rect x="3" y="3" width="12" height="12" rx="1.5" fill="${f}" stroke="${s}" stroke-width="1.4" filter="url(#rough)"/></svg>`;
+}
+// fill legend shapes (neutral)
+document.querySelectorAll('.shape[data-shape]').forEach(el=>el.innerHTML=shapeSVG(el.dataset.shape,'#fff',16));
+
+/* ---- markers ---- */
+const markers=document.getElementById('markers');
+function renderMarkers(revealT=1){
+  markers.innerHTML='';
+  const sorted=[...EV].sort((a,b)=>a.date.localeCompare(b.date));
+  const min=sorted[0].date, max=sorted[sorted.length-1].date;
+  EV.forEach(e=>{
+    if(!activeTypes.has(e.type))return;
+    const t=(Date.parse(e.date)-Date.parse(min))/(Date.parse(max)-Date.parse(min)||1);
+    if(t>revealT)return;
+    const b=document.createElement('button');
+    b.className='marker';b.style.left=e.x+'%';b.style.top=e.y+'%';
+    b.title=e.loc+' · '+e.sp;
+    b.innerHTML=shapeSVG(e.type,PCOL[e.prio],e.type==='poultry'?Math.min(28,16+Math.log10(e.cases)*4):18);
+    b.onclick=()=>openModal(e);
+    markers.appendChild(b);
+  });
+}
+
+/* ---- list ---- */
+let sortKey='prio',sortDir=-1;
+function renderList(){
+  const rows=[...EV].filter(e=>activeTypes.has(e.type)).sort((a,b)=>{
+    let r=0;
+    if(sortKey==='prio')r=PRANK[a.prio]-PRANK[b.prio];
+    else r=a.date.localeCompare(b.date);
+    return r*sortDir;
+  });
+  const body=document.getElementById('listBody');
+  body.innerHTML=rows.map(e=>`<tr data-id="${e.id}">
+    <td><span class="prio"><span class="pdot ${e.prio}"></span>${e.prio==='high'?'Hoch':e.prio==='med'?'Mittel':'Tief'}</span></td>
+    <td>${fmt(e.date)}</td><td>${e.loc}</td>
+    <td><span class="shape" style="margin-right:6px">${shapeSVG(e.type,'#fff',14)}</span>${TLABEL[e.type]}</td>
+    <td>${e.sp}</td><td>${e.sub}</td><td>${e.cases.toLocaleString('de-CH')}</td>
+    <td style="color:var(--blue)">Details ›</td></tr>`).join('');
+  body.querySelectorAll('tr').forEach(tr=>tr.onclick=()=>openModal(EV.find(x=>x.id==+tr.dataset.id)));
+}
+function fmt(d){const[y,m,da]=d.split('-');return da+'.'+m+'.'+y.slice(2);}
+
+/* ---- histogram (synthetic monthly, by type) ---- */
+const HIST=[ //  Okt..Mai : [wild,poultry,captive]
+ ['Okt',[1,0,0]],['Nov',[3,1,0]],['Dez',[5,2,1]],['Jan',[8,3,1]],
+ ['Feb',[11,4,2]],['Mär',[14,5,2]],['Apr',[18,6,3]],['Mai',[6,2,1]]];
+function renderHist(){
+  const maxv=Math.max(...HIST.map(h=>h[1].reduce((a,b)=>a+b,0)));
+  const H=148;
+  document.getElementById('hist').innerHTML=HIST.map(([m,[w,p,c]])=>{
+    const seg=(v,cl)=>v?`<div class="hseg ${cl}" style="height:${v/maxv*H}px"></div>`:'';
+    return `<div class="hcol"><div class="hx">${m}</div>${seg(w,'w')}${seg(p,'p')}${seg(c,'c')}</div>`;
+  }).join('');
+}
+
+/* ---- totals ---- */
+function renderTotals(){
+  const f=t=>EV.filter(e=>e.type===t&&activeTypes.has(t)).length;
+  const w=f('wild'),p=f('poultry'),c=f('captive');
+  sW.textContent=w;sP.textContent=p;sC.textContent=c;sT.textContent=w+p+c;
+}
+
+/* ---- modal ---- */
+const ov=document.getElementById('overlay');let modalEv=null;
+function openModal(e){
+  modalEv=e;
+  mTitle.textContent=e.sp;
+  mSub.textContent=e.loc+' · '+e.src;
+  mBadge.innerHTML=`<span class="pdot ${e.prio}"></span> Priorität: ${e.prio==='high'?'Hoch':e.prio==='med'?'Mittel':'Tief'}`;
+  mDate.textContent=fmt(e.date);mLoc.textContent=e.loc;
+  mType.textContent=TLABEL[e.type];mSubt.textContent=e.sub;
+  mCases.textContent=e.cases.toLocaleString('de-CH');mStatus.textContent=e.status;mSource.textContent=e.src;
+  ov.classList.add('on');
+}
+function closeModal(){ov.classList.remove('on')}
+modalClose.onclick=closeModal;mClose2.onclick=closeModal;
+ov.onclick=ev=>{if(ev.target===ov)closeModal()};
+mZoom.onclick=()=>{closeModal();switchView('map');toast('Zentriert auf '+modalEv.loc+' (Demo)')};
+
+/* ---- view switching ---- */
+function switchView(v){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.view===v));
+  const map=v==='map';
+  document.querySelector('.view-map').style.display=map?'':'none';
+  document.querySelector('.view-stats').style.display=map?'':'none';
+  document.querySelector('.view-list').style.display=map?'none':'';
+  document.getElementById('main').classList.toggle('list-mode',!map);
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchView(t.dataset.view));
+
+/* ---- type filter ---- */
+document.querySelectorAll('.chk').forEach(c=>c.onclick=()=>{
+  const t=c.dataset.type;
+  if(activeTypes.has(t)){activeTypes.delete(t);c.classList.remove('on');c.classList.add('off');}
+  else{activeTypes.add(t);c.classList.add('on');c.classList.remove('off');}
+  renderMarkers();renderList();renderTotals();
+});
+
+/* ---- predictions toggle ---- */
+predToggle.onchange=e=>document.getElementById('streams').classList.toggle('on',e.target.checked);
+
+/* ---- sort ---- */
+document.querySelectorAll('th[data-sort]').forEach(th=>th.onclick=()=>{
+  const k=th.dataset.sort;
+  if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=-1;}
+  document.querySelectorAll('th[data-sort] .sort').forEach(s=>s.textContent='⇅');
+  th.querySelector('.sort').textContent=sortDir<0?'▾':'▴';
+  renderList();
+});
+
+/* ---- timeline animation ---- */
+let playing=false,raf=null,p=0;
+playBtn.onclick=()=>{
+  if(playing){stop();return;}
+  playing=true;playBtn.textContent='❚❚';p=0;
+  const t0=performance.now(),dur=4500;
+  function step(now){
+    p=Math.min(1,(now-t0)/dur);
+    tlHead.style.left=(p*100)+'%';
+    renderMarkers(p);
+    if(p<1)raf=requestAnimationFrame(step);else stop();
+  }
+  raf=requestAnimationFrame(step);
+};
+function stop(){playing=false;playBtn.textContent='▶';if(raf)cancelAnimationFrame(raf);tlHead.style.left='100%';renderMarkers(1);}
+
+/* ---- export / notes ---- */
+exportBtn.onclick=()=>toast('Export wird erstellt: HPAI_Events_2026.xlsx (Demo)');
+notesToggle.onchange=e=>document.body.classList.toggle('notes-off',!e.target.checked);
+
+/* ---- toast ---- */
+let tt=null;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2200);}
+
+/* init */
+renderMarkers();renderList();renderHist();renderTotals();
+tlHead.style.left='100%';
+</script>
+</body>
+</html>
