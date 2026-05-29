@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from pathlib import Path
+import time
 
 from govtech_tierseuchen import cli
 from govtech_tierseuchen.cli import build_parser, main, resolve_data_dir
@@ -244,6 +245,62 @@ def test_run_all_executes_all_pipeline_steps_for_selected_sources(
     ]
     assert "Running 6 pipeline steps for padi_web" in captured.out
     assert "Completed 6 pipeline steps for 1 source" in captured.out
+
+
+def test_run_all_runs_discover_and_fetch_in_parallel_for_multiple_sources(
+    monkeypatch, tmp_path
+):
+    calls = []
+
+    def slow_record(stage_name, source_index=1):
+        def fake_stage(*args):
+            source = args[source_index]
+            calls.append((f"{stage_name}-start", source))
+            time.sleep(0.02)
+            calls.append((f"{stage_name}-end", source))
+            return 0
+
+        return fake_stage
+
+    monkeypatch.setattr(cli, "_discover", slow_record("discover"))
+    monkeypatch.setattr(cli, "_fetch", slow_record("fetch"))
+    monkeypatch.setattr(cli, "_parse", lambda *args: 0)
+    monkeypatch.setattr(cli, "_filter_disease", lambda *args: 0)
+    monkeypatch.setattr(cli, "_extract_reports", lambda *args: 0)
+    monkeypatch.setattr(cli, "_export_rdf", lambda *args: 0)
+
+    exit_code = main(
+        [
+            "run-all",
+            "--source",
+            "gefluegelnews",
+            "--source",
+            "padi_web",
+            "--data-dir",
+            str(tmp_path),
+            "--delay-seconds",
+            "0",
+        ]
+    )
+
+    discover_start_positions = [
+        index for index, call in enumerate(calls) if call[0] == "discover-start"
+    ]
+    discover_end_positions = [
+        index for index, call in enumerate(calls) if call[0] == "discover-end"
+    ]
+    fetch_start_positions = [
+        index for index, call in enumerate(calls) if call[0] == "fetch-start"
+    ]
+    fetch_end_positions = [
+        index for index, call in enumerate(calls) if call[0] == "fetch-end"
+    ]
+
+    assert exit_code == 0
+    assert len(discover_start_positions) == 2
+    assert len(fetch_start_positions) == 2
+    assert max(discover_start_positions) < min(discover_end_positions)
+    assert max(fetch_start_positions) < min(fetch_end_positions)
 
 
 def test_default_config_resolves_data_dir_from_repo_root(monkeypatch, tmp_path):

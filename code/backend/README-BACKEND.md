@@ -67,7 +67,10 @@ uv run ts run-all --source gefluegelnews --source padi_web
 
 `run-all` executes discovery, fetching, parsing, disease filtering, report
 extraction, and QA RDF export in order. It prints the current source and stage
-before each step, while `fetch` still shows its article download progress bar.
+before each step. When multiple sources are selected, discovery runs for those
+sources concurrently, then fetching runs concurrently; the later local
+transformation stages stay ordered per source. `fetch` still shows its article
+download progress bar.
 
 ```bash
 uv run ts discover gefluegelnews

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable
@@ -269,20 +270,41 @@ def _run_all(
     console: Console,
     config: AppConfig,
 ) -> int:
-    for source in sources:
-        source_config = config.sources[source]
-        resolved_timeout_seconds, resolved_delay_seconds, resolved_limit = (
-            _resolve_source_options(
-                timeout_seconds,
-                delay_seconds,
-                limit,
-                source_config,
-            )
+    source_options = {
+        source: _resolve_source_options(
+            timeout_seconds,
+            delay_seconds,
+            limit,
+            config.sources[source],
         )
+        for source in sources
+    }
+    for source in sources:
         console.print(
             f"[bold]Running {len(PIPELINE_STAGES)} pipeline steps for {source}[/bold]"
         )
-        for index, stage in enumerate(PIPELINE_STAGES, start=1):
+
+    if len(sources) > 1:
+        exit_code = _run_parallel_ingest_stages(
+            data_dir=data_dir,
+            sources=sources,
+            source_options=source_options,
+            console=console,
+            config=config,
+        )
+        if exit_code != 0:
+            return exit_code
+        start_index = 3
+        stages = PIPELINE_STAGES[2:]
+    else:
+        start_index = 1
+        stages = PIPELINE_STAGES
+
+    for source in sources:
+        resolved_timeout_seconds, resolved_delay_seconds, resolved_limit = (
+            source_options[source]
+        )
+        for index, stage in enumerate(stages, start=start_index):
             console.print(
                 f"[cyan]{source}: step {index}/{len(PIPELINE_STAGES)} {stage}[/cyan]"
             )
@@ -324,6 +346,57 @@ def _run_all(
     console.print(
         f"[green]Completed {len(PIPELINE_STAGES)} pipeline steps for {len(sources)} {source_label}[/green]"
     )
+    return 0
+
+
+def _run_parallel_ingest_stages(
+    data_dir: Path,
+    sources: list[str],
+    source_options: dict[str, tuple[float, float, int | None]],
+    console: Console,
+    config: AppConfig,
+) -> int:
+    for stage in ("discover", "fetch"):
+        console.print(f"[cyan]Running {stage} for {len(sources)} sources[/cyan]")
+        with ThreadPoolExecutor(max_workers=len(sources)) as executor:
+            futures = {}
+            for source in sources:
+                resolved_timeout_seconds, resolved_delay_seconds, resolved_limit = (
+                    source_options[source]
+                )
+                console.print(
+                    f"[cyan]{source}: step {PIPELINE_STAGES.index(stage) + 1}/{len(PIPELINE_STAGES)} {stage}[/cyan]"
+                )
+                if stage == "discover":
+                    future = executor.submit(
+                        _discover,
+                        data_dir,
+                        source,
+                        resolved_timeout_seconds,
+                        resolved_limit,
+                        console,
+                        config,
+                    )
+                else:
+                    future = executor.submit(
+                        _fetch,
+                        data_dir,
+                        source,
+                        resolved_timeout_seconds,
+                        resolved_delay_seconds,
+                        resolved_limit,
+                        console,
+                        config,
+                    )
+                futures[future] = source
+            for future in as_completed(futures):
+                source = futures[future]
+                exit_code = future.result()
+                if exit_code != 0:
+                    console.print(
+                        f"[red]Stopped at {stage} for {source} with exit code {exit_code}[/red]"
+                    )
+                    return exit_code
     return 0
 
 
