@@ -39,8 +39,6 @@ type Props = {
 const SWITZERLAND_CENTER: [number, number] = [46.8182, 8.2275];
 const SWITZERLAND_RADIUS_KM = 200;
 
-const DEFAULT_FROM = '2026-03-01T00:00';
-const DEFAULT_TO = '2026-05-28T23:59';
 
 export default function DashboardMap({
     cases,
@@ -65,8 +63,8 @@ return 'map';
         window.localStorage.setItem('ts-scanner:view', view);
     }, [view]);
     const [population, setPopulation] = useState<Population[]>([]);
-    const [dateFrom, setDateFrom] = useState(DEFAULT_FROM);
-    const [dateTo, setDateTo] = useState(DEFAULT_TO);
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     const [disease, setDisease] = useState<string[]>([]);
 
     const toggleDisease = (d: string) => {
@@ -91,7 +89,7 @@ return 'map';
     const center = 'Switzerland';
     const radiusKm = SWITZERLAND_RADIUS_KM;
 
-    const [playCursor, setPlayCursor] = useState(DEFAULT_TO);
+    const [playCursor, setPlayCursor] = useState('');
     const [playing, setPlaying] = useState(false);
     const [speed, setSpeed] = useState(1);
 
@@ -235,6 +233,11 @@ return 'map';
                     dateTo={dateTo}
                     onDateFromChange={setDateFrom}
                     onDateToChange={setDateTo}
+                    onResetDate={() => {
+                        setDateFrom('');
+                        setDateTo('');
+                    }}
+                    dateChanged={dateFrom !== '' || dateTo !== ''}
                     species={species}
                     onToggleSpecies={toggleSpecies}
                     onResetSpecies={() => setSpecies([])}
