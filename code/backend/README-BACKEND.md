@@ -43,6 +43,11 @@ Run the whole configured pipeline:
 uv run ts-screener run-all
 ```
 
+By default, stages reuse records whose upstream inputs have not changed. The
+pipeline stores this small incremental state database at
+`data/unstructured/pipeline_state.sqlite`; JSONL outputs remain complete and are
+merged with any newly processed records.
+
 Limit it to selected sources:
 
 ```bash
@@ -69,7 +74,10 @@ run concurrently; later stages run per source in order.
 Useful options:
 
 - `--data-dir <path>` overrides `scraper.data_dir`.
-- `--limit <n>` bounds discovery, fetching, parsing, or `run-all`.
+- `--limit <n>` bounds discovery, fetching, parsing, or `run-all`; use
+  `--limit 0` for an explicit full historical backfill when a source has a
+  default cap.
+- `--force` reprocesses records even when the incremental state is current.
 - `--timeout-seconds <n>` and `--delay-seconds <n>` override source defaults.
 - `--rdf-output <path>` and `--csv-output <path>` override final export paths.
 - `enrich --output <path> --prompt <path> --progress-every <n>` overrides
@@ -81,7 +89,10 @@ repository root, not from the current shell directory.
 ## Sources
 
 - `gefluegelnews`: discovers article URLs from the configured sitemap, caches
-  article HTML under `raw_html/`, and parses article metadata/full text.
+  article HTML under `raw_html/`, and parses article metadata/full text. The
+  default run is capped in `config.yaml` to avoid refetching the full historical
+  sitemap during normal `run-all`; pass `--limit 0` or a larger explicit limit
+  when a backfill is intentional.
 - `padi_web`: discovers recent relevant articles from the public PADI API,
   caches detail payloads under `raw_json/`, and parses sentence payloads into
   Markdown `fulltext`.

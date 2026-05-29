@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -24,7 +25,9 @@ from govtech_tierseuchen.config import (
     load_config,
     resolve_config_path,
 )
+from govtech_tierseuchen.jsonl import to_jsonable
 from govtech_tierseuchen.models import ParseError
+from govtech_tierseuchen.state import PipelineState, stable_fingerprint
 
 LOGGER = logging.getLogger(__name__)
 SOURCE_PIPELINE_STAGES = (
@@ -36,6 +39,16 @@ SOURCE_PIPELINE_STAGES = (
     "enrich",
 )
 RUN_ALL_STEP_COUNT = len(SOURCE_PIPELINE_STAGES) + 1
+FETCH_METADATA_FIELDS = {
+    "fetched_at",
+    "status_code",
+    "raw_html_path",
+    "content_hash",
+    "canonical_url",
+    "fetch_error_type",
+    "fetch_error_message",
+    "fetch_error_at",
+}
 
 
 def build_parser(config: AppConfig | None = None) -> argparse.ArgumentParser:
@@ -52,6 +65,11 @@ def build_parser(config: AppConfig | None = None) -> argparse.ArgumentParser:
     enrich_parser.add_argument("--output", default=None)
     enrich_parser.add_argument("--prompt", default=None)
     enrich_parser.add_argument("--progress-every", type=int, default=None)
+    enrich_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Reprocess records even when the incremental state is current.",
+    )
     export_parser = subparsers.add_parser("export-final")
     export_parser.add_argument(
         "--source",
@@ -83,7 +101,17 @@ def _add_common_options(subparser: argparse.ArgumentParser) -> None:
     subparser.add_argument("--data-dir", default=None)
     subparser.add_argument("--timeout-seconds", type=float, default=None)
     subparser.add_argument("--delay-seconds", type=float, default=None)
-    subparser.add_argument("--limit", type=int, default=None)
+    subparser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum records to process; use 0 to disable a source default limit.",
+    )
+    subparser.add_argument(
+        "--force",
+        action="store_true",
+        help="Reprocess records even when the incremental state is current.",
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -105,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
             timeout_seconds=args.timeout_seconds,
             delay_seconds=args.delay_seconds,
             limit=args.limit,
+            force=args.force,
             console=console,
             config=config,
         )
@@ -135,15 +164,16 @@ def main(argv: list[str] | None = None) -> int:
             timeout_seconds,
             delay_seconds,
             limit,
+            args.force,
             console,
             config,
         )
     if args.command == "parse":
-        return _parse(data_dir, args.source, limit, console, config)
+        return _parse(data_dir, args.source, limit, args.force, console, config)
     if args.command == "filter-disease":
-        return _filter_disease(data_dir, args.source, console, config)
+        return _filter_disease(data_dir, args.source, args.force, console, config)
     if args.command == "extract-reports":
-        return _extract_reports(data_dir, args.source, console, config)
+        return _extract_reports(data_dir, args.source, args.force, console, config)
     if args.command == "enrich":
         output_path = resolve_config_path(args.output, config) if args.output else None
         prompt_path = resolve_config_path(args.prompt, config) if args.prompt else None
@@ -155,6 +185,7 @@ def main(argv: list[str] | None = None) -> int:
             output_path=output_path,
             prompt_path=prompt_path,
             progress_every=args.progress_every,
+            force=args.force,
         )
     parser.error(f"Unknown command {args.command}")
     return 2
@@ -174,7 +205,10 @@ def _resolve_source_options(
     resolved_delay_seconds = (
         delay_seconds if delay_seconds is not None else source_config.delay_seconds
     )
-    resolved_limit = limit if limit is not None else source_config.limit
+    if limit == 0:
+        resolved_limit = None
+    else:
+        resolved_limit = limit if limit is not None else source_config.limit
     return resolved_timeout_seconds, resolved_delay_seconds, resolved_limit
 
 
@@ -200,6 +234,171 @@ def _configure_logging(console: Console, config: AppConfig) -> None:
         ],
         force=True,
     )
+
+
+def _merge_manifest_rows(
+    discovered_rows: list[dict[str, Any]], existing_rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    existing_by_link = {
+        row["source_link"]: row for row in existing_rows if row.get("source_link")
+    }
+    discovered_links = set()
+    merged = []
+    for discovered in discovered_rows:
+        source_link = discovered.get("source_link")
+        if not source_link:
+            continue
+        discovered_links.add(source_link)
+        existing = existing_by_link.get(source_link, {})
+        if existing.get("last_modified") == discovered.get("last_modified"):
+            base = existing
+        else:
+            base = {
+                key: value
+                for key, value in existing.items()
+                if key not in FETCH_METADATA_FIELDS
+            }
+        merged.append({**base, **discovered})
+    merged.extend(
+        row
+        for row in existing_rows
+        if row.get("source_link") and row["source_link"] not in discovered_links
+    )
+    return merged
+
+
+def _record_source_link(row: dict[str, Any]) -> str:
+    return str(row.get("source_link") or "")
+
+
+def _nested_article_source_link(row: dict[str, Any]) -> str:
+    article = row.get("article")
+    if isinstance(article, dict):
+        return _record_source_link(article)
+    return ""
+
+
+def _fetch_fingerprint(row: dict[str, Any]) -> str:
+    return stable_fingerprint(
+        {
+            "source_link": row.get("source_link"),
+            "last_modified": row.get("last_modified"),
+        }
+    )
+
+
+def _parse_fingerprint(row: dict[str, Any]) -> str:
+    return stable_fingerprint(
+        {
+            "source_link": row.get("source_link"),
+            "raw_html_path": row.get("raw_html_path"),
+            "content_hash": row.get("content_hash"),
+        }
+    )
+
+
+def _filter_fingerprint(row: dict[str, Any], config: AppConfig) -> str:
+    return stable_fingerprint(
+        {
+            "article": row,
+            "disease_filter": config.disease_filter,
+        }
+    )
+
+
+def _extract_fingerprint(row: dict[str, Any], config: AppConfig) -> str:
+    return stable_fingerprint(
+        {
+            "article": row,
+            "disease_filter": config.disease_filter,
+            "disease_reports": config.disease_reports,
+        }
+    )
+
+
+def _cached_raw_artifact_is_safe(
+    row: dict[str, Any], data_dir: Path, source: str, config: AppConfig
+) -> bool:
+    raw_path_value = row.get("raw_html_path")
+    if not raw_path_value or not row.get("content_hash"):
+        return False
+    raw_path = _resolve_raw_artifact_path(Path(raw_path_value), data_dir)
+    return _is_relative_to(raw_path, config.source_dir(data_dir, source)) and (
+        raw_path.exists()
+    )
+
+
+def _fetch_metadata_from_existing_articles(
+    article_rows: list[dict[str, Any]],
+    data_dir: Path,
+    source: str,
+    config: AppConfig,
+) -> dict[str, dict[str, Any]]:
+    metadata_by_link = {}
+    for article in article_rows:
+        source_link = _record_source_link(article)
+        if not source_link or not _cached_raw_artifact_is_safe(
+            article, data_dir, source, config
+        ):
+            continue
+        metadata = {
+            "raw_html_path": article["raw_html_path"],
+            "content_hash": article["content_hash"],
+        }
+        if article.get("retrieved_at"):
+            metadata["fetched_at"] = article["retrieved_at"]
+        if article.get("canonical_url"):
+            metadata["canonical_url"] = article["canonical_url"]
+        if article.get("status_code") is not None:
+            metadata["status_code"] = article["status_code"]
+        metadata_by_link[source_link] = metadata
+    return metadata_by_link
+
+
+def _merge_cached_fetch_metadata(
+    row: dict[str, Any], metadata: dict[str, Any] | None
+) -> dict[str, Any]:
+    if not metadata:
+        return row
+    merged = dict(row)
+    for key, value in metadata.items():
+        if not merged.get(key):
+            merged[key] = value
+    return merged
+
+
+def _raw_artifact_path_for_source(
+    source: str, data_dir: Path, source_link: str
+) -> Path:
+    if source == "gefluegelnews":
+        from govtech_tierseuchen.gefluegelnews import raw_html_path
+
+        return raw_html_path(data_dir, source_link)
+    if source == "padi_web":
+        from govtech_tierseuchen.padi_web import raw_json_path
+
+        return raw_json_path(data_dir, source_link)
+    raise ValueError(f"Unsupported source: {source}")
+
+
+def _fetch_metadata_from_raw_cache(
+    row: dict[str, Any], data_dir: Path, source: str, config: AppConfig
+) -> dict[str, Any] | None:
+    source_link = _record_source_link(row)
+    if not source_link:
+        return None
+    raw_path = _raw_artifact_path_for_source(source, data_dir, source_link)
+    raw_path_row = {"raw_html_path": str(raw_path), "content_hash": "cached"}
+    if not _cached_raw_artifact_is_safe(raw_path_row, data_dir, source, config):
+        return None
+    try:
+        content_hash = hashlib.sha256(raw_path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+    return {
+        "raw_html_path": str(raw_path),
+        "content_hash": content_hash,
+    }
 
 
 def _fetcher_for_source(source: str) -> Callable[..., Any]:
@@ -251,7 +450,7 @@ def _discover(
     console: Console,
     config: AppConfig,
 ) -> int:
-    from govtech_tierseuchen.jsonl import write_jsonl
+    from govtech_tierseuchen.jsonl import read_jsonl, write_jsonl
 
     try:
         articles = _discover_articles(source, timeout_seconds, limit, console)
@@ -262,7 +461,10 @@ def _discover(
 
     if limit is not None:
         articles = articles[:limit]
-    write_jsonl(config.output_path(data_dir, source, "manifest"), articles)
+    manifest_path = config.output_path(data_dir, source, "manifest")
+    discovered_rows = [to_jsonable(article) for article in articles]
+    rows = _merge_manifest_rows(discovered_rows, read_jsonl(manifest_path))
+    write_jsonl(manifest_path, rows)
     console.print(f"[green]Discovered {len(articles)} {source} article URLs[/green]")
     return 0
 
@@ -329,6 +531,7 @@ def _run_all(
     timeout_seconds: float | None,
     delay_seconds: float | None,
     limit: int | None,
+    force: bool,
     console: Console,
     config: AppConfig,
 ) -> int:
@@ -351,6 +554,7 @@ def _run_all(
             data_dir=data_dir,
             sources=sources,
             source_options=source_options,
+            force=force,
             console=console,
             config=config,
         )
@@ -386,17 +590,20 @@ def _run_all(
                     resolved_timeout_seconds,
                     resolved_delay_seconds,
                     resolved_limit,
+                    force,
                     console,
                     config,
                 )
             elif stage == "parse":
-                exit_code = _parse(data_dir, source, resolved_limit, console, config)
+                exit_code = _parse(
+                    data_dir, source, resolved_limit, force, console, config
+                )
             elif stage == "filter-disease":
-                exit_code = _filter_disease(data_dir, source, console, config)
+                exit_code = _filter_disease(data_dir, source, force, console, config)
             elif stage == "extract-reports":
-                exit_code = _extract_reports(data_dir, source, console, config)
+                exit_code = _extract_reports(data_dir, source, force, console, config)
             elif stage == "enrich":
-                exit_code = _enrich(data_dir, source, console, config)
+                exit_code = _enrich(data_dir, source, console, config, force)
             else:
                 raise ValueError(f"Unsupported pipeline stage: {stage}")
             if exit_code != 0:
@@ -429,6 +636,7 @@ def _run_parallel_ingest_stages(
     data_dir: Path,
     sources: list[str],
     source_options: dict[str, tuple[float, float, int | None]],
+    force: bool,
     console: Console,
     config: AppConfig,
 ) -> int:
@@ -461,6 +669,7 @@ def _run_parallel_ingest_stages(
                         resolved_timeout_seconds,
                         resolved_delay_seconds,
                         resolved_limit,
+                        force,
                         console,
                         config,
                     )
@@ -487,6 +696,7 @@ def _fetch(
     timeout_seconds: float,
     delay_seconds: float,
     limit: int | None,
+    force: bool,
     console: Console,
     config: AppConfig,
 ) -> int:
@@ -495,9 +705,19 @@ def _fetch(
     fetch_and_cache_article = _fetcher_for_source(source)
     manifest_path = config.output_path(data_dir, source, "manifest")
     rows = read_jsonl(manifest_path)
+    cached_fetch_metadata = _fetch_metadata_from_existing_articles(
+        read_jsonl(config.output_path(data_dir, source, "articles")),
+        data_dir,
+        source,
+        config,
+    )
     selected_rows = rows if limit is None else rows[:limit]
     untouched_rows = [] if limit is None else rows[limit:]
     fetched_rows = []
+    fetched_count = 0
+    skipped_count = 0
+    state = PipelineState.from_data_dir(data_dir)
+    state_updates: list[tuple[str, str]] = []
 
     with Progress(
         TextColumn("[bold blue]{task.description}"),
@@ -510,6 +730,25 @@ def _fetch(
             config.scraper.progress_description, total=len(selected_rows)
         )
         for row in selected_rows:
+            record_key = _record_source_link(row)
+            row = _merge_cached_fetch_metadata(
+                row, cached_fetch_metadata.get(record_key)
+            )
+            row = _merge_cached_fetch_metadata(
+                row, _fetch_metadata_from_raw_cache(row, data_dir, source, config)
+            )
+            fingerprint = _fetch_fingerprint(row)
+            if (
+                record_key
+                and not force
+                and _cached_raw_artifact_is_safe(row, data_dir, source, config)
+            ):
+                fetched_rows.append(row)
+                state_updates.append((record_key, fingerprint))
+                skipped_count += 1
+                progress.advance(task)
+                continue
+
             fetched = fetch_and_cache_article(
                 base_dir=data_dir,
                 source_link=row["source_link"],
@@ -528,6 +767,9 @@ def _fetch(
                         "canonical_url": fetched.canonical_url,
                     }
                 )
+                if record_key:
+                    state_updates.append((record_key, fingerprint))
+                fetched_count += 1
             else:
                 LOGGER.warning(
                     "Fetch failed for %s: %s", row["source_link"], fetched.message
@@ -542,8 +784,10 @@ def _fetch(
             fetched_rows.append(merged)
             progress.advance(task)
     write_jsonl(manifest_path, [*fetched_rows, *untouched_rows])
+    state.mark_many(source=source, stage="fetch", records=state_updates)
+    suffix = f"; skipped {skipped_count} current" if skipped_count else ""
     console.print(
-        f"[green]Fetched {len(selected_rows)} of {len(rows)} manifest entries[/green]"
+        f"[green]Fetched {fetched_count} of {len(rows)} manifest entries{suffix}[/green]"
     )
     return 0
 
@@ -552,6 +796,7 @@ def _parse(
     data_dir: Path,
     source: str,
     limit: int | None,
+    force: bool,
     console: Console,
     config: AppConfig,
 ) -> int:
@@ -560,9 +805,44 @@ def _parse(
 
     manifest = read_jsonl(config.output_path(data_dir, source, "manifest"))
     rows = manifest if limit is None else manifest[:limit]
+    existing_articles = {
+        _record_source_link(row): row
+        for row in read_jsonl(config.output_path(data_dir, source, "articles"))
+        if _record_source_link(row)
+    }
+    existing_parse_errors = {
+        _record_source_link(row): row
+        for row in read_jsonl(config.output_path(data_dir, source, "parse_errors"))
+        if _record_source_link(row)
+    }
+    state = PipelineState.from_data_dir(data_dir)
+    state_updates: list[tuple[str, str]] = []
     parsed = []
     parse_errors = []
     for row in rows:
+        record_key = _record_source_link(row)
+        fingerprint = _parse_fingerprint(row)
+        if record_key and not force:
+            stored_fingerprint = state.fingerprint_for(
+                source=source, stage="parse", record_key=record_key
+            )
+            state_current = stored_fingerprint == fingerprint
+            bootstrap_current = (
+                stored_fingerprint is None
+                and record_key in existing_articles
+                and existing_articles[record_key].get("content_hash")
+                == row.get("content_hash")
+            )
+            if state_current or bootstrap_current:
+                if record_key in existing_articles:
+                    parsed.append(existing_articles[record_key])
+                    state_updates.append((record_key, fingerprint))
+                    continue
+                if record_key in existing_parse_errors:
+                    parse_errors.append(existing_parse_errors[record_key])
+                    state_updates.append((record_key, fingerprint))
+                    continue
+
         raw_path_value = row.get("raw_html_path")
         if not raw_path_value:
             parse_errors.append(
@@ -594,6 +874,8 @@ def _parse(
             continue
         try:
             parsed.append(_parse_row_for_source(source, row, raw_html_path))
+            if record_key:
+                state_updates.append((record_key, fingerprint))
         except (KeyError, TypeError, ValueError) as exc:
             parse_errors.append(
                 ParseError(
@@ -604,8 +886,11 @@ def _parse(
                     occurred_at=datetime.now(UTC),
                 )
             )
+            if record_key:
+                state_updates.append((record_key, fingerprint))
     write_jsonl(config.output_path(data_dir, source, "articles"), parsed)
     write_jsonl(config.output_path(data_dir, source, "parse_errors"), parse_errors)
+    state.mark_many(source=source, stage="parse", records=state_updates)
     console.print(
         f"[green]Parsed {len(parsed)} articles[/green]; "
         f"[yellow]{len(parse_errors)} parse errors[/yellow]"
@@ -640,46 +925,102 @@ def _is_relative_to(path: Path, parent: Path) -> bool:
 
 
 def _filter_disease(
-    data_dir: Path, source: str, console: Console, config: AppConfig
+    data_dir: Path, source: str, force: bool, console: Console, config: AppConfig
 ) -> int:
     from govtech_tierseuchen.disease_filter import assess_disease_relevance
     from govtech_tierseuchen.jsonl import read_jsonl, write_jsonl
     from govtech_tierseuchen.models import news_article_from_dict
 
-    articles = [
-        news_article_from_dict(row)
-        for row in read_jsonl(config.output_path(data_dir, source, "articles"))
-    ]
+    article_rows = read_jsonl(config.output_path(data_dir, source, "articles"))
+    existing_relevant = {
+        _nested_article_source_link(row): row
+        for row in read_jsonl(config.output_path(data_dir, source, "disease_articles"))
+        if _nested_article_source_link(row)
+    }
+    state = PipelineState.from_data_dir(data_dir)
+    state_updates: list[tuple[str, str]] = []
     relevant = []
-    for article in articles:
+    for row in article_rows:
+        record_key = _record_source_link(row)
+        fingerprint = _filter_fingerprint(row, config)
+        if record_key and not force:
+            stored_fingerprint = state.fingerprint_for(
+                source=source, stage="filter-disease", record_key=record_key
+            )
+            state_current = stored_fingerprint == fingerprint
+            bootstrap_current = (
+                stored_fingerprint is None
+                and record_key in existing_relevant
+                and (
+                    existing_relevant[record_key].get("article", {}).get("content_hash")
+                    == row.get("content_hash")
+                )
+            )
+            if state_current or bootstrap_current:
+                if record_key in existing_relevant:
+                    relevant.append(existing_relevant[record_key])
+                state_updates.append((record_key, fingerprint))
+                continue
+
+        article = news_article_from_dict(row)
         relevance = assess_disease_relevance(article)
         if relevance.is_relevant:
             relevant.append({"article": article, "relevance": relevance})
+        if record_key:
+            state_updates.append((record_key, fingerprint))
     write_jsonl(config.output_path(data_dir, source, "disease_articles"), relevant)
+    state.mark_many(source=source, stage="filter-disease", records=state_updates)
     console.print(
-        f"[green]Filtered {len(relevant)} disease-relevant articles from {len(articles)} parsed articles[/green]"
+        f"[green]Filtered {len(relevant)} disease-relevant articles from {len(article_rows)} parsed articles[/green]"
     )
     return 0
 
 
 def _extract_reports(
-    data_dir: Path, source: str, console: Console, config: AppConfig
+    data_dir: Path, source: str, force: bool, console: Console, config: AppConfig
 ) -> int:
     from govtech_tierseuchen.disease_filter import assess_disease_relevance
     from govtech_tierseuchen.disease_reports import extract_report_rules
     from govtech_tierseuchen.jsonl import read_jsonl, write_jsonl
     from govtech_tierseuchen.models import news_article_from_dict
 
-    articles = [
-        news_article_from_dict(row)
-        for row in read_jsonl(config.output_path(data_dir, source, "articles"))
-    ]
+    article_rows = read_jsonl(config.output_path(data_dir, source, "articles"))
+    existing_reports = {
+        _record_source_link(row): row
+        for row in read_jsonl(config.output_path(data_dir, source, "disease_reports"))
+        if _record_source_link(row)
+    }
+    state = PipelineState.from_data_dir(data_dir)
+    state_updates: list[tuple[str, str]] = []
     reports = []
-    for article in articles:
+    for row in article_rows:
+        record_key = _record_source_link(row)
+        fingerprint = _extract_fingerprint(row, config)
+        if record_key and not force:
+            stored_fingerprint = state.fingerprint_for(
+                source=source, stage="extract-reports", record_key=record_key
+            )
+            state_current = stored_fingerprint == fingerprint
+            bootstrap_current = (
+                stored_fingerprint is None
+                and record_key in existing_reports
+                and existing_reports[record_key].get("content_hash")
+                == row.get("content_hash")
+            )
+            if state_current or bootstrap_current:
+                if record_key in existing_reports:
+                    reports.append(existing_reports[record_key])
+                state_updates.append((record_key, fingerprint))
+                continue
+
+        article = news_article_from_dict(row)
         relevance = assess_disease_relevance(article)
         if relevance.is_relevant:
             reports.append(extract_report_rules(article, relevance))
+        if record_key:
+            state_updates.append((record_key, fingerprint))
     write_jsonl(config.output_path(data_dir, source, "disease_reports"), reports)
+    state.mark_many(source=source, stage="extract-reports", records=state_updates)
     console.print(
         f"[green]Extracted {len(reports)} candidate DiseaseReport records[/green]"
     )
@@ -691,6 +1032,7 @@ def _enrich(
     source: str,
     console: Console,
     config: AppConfig,
+    force: bool = False,
     *,
     output_path: Path | None = None,
     prompt_path: Path | None = None,
@@ -706,6 +1048,7 @@ def _enrich(
             output_path=output_path,
             prompt_path=prompt_path,
             progress_every=progress_every,
+            force=force,
         )
     except (FileNotFoundError, OSError, RuntimeError) as exc:
         console.print(f"[red]Enrichment failed for {source}: {exc}[/red]")

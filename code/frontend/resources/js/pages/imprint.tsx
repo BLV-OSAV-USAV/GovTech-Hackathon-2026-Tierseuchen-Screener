@@ -101,7 +101,7 @@ export default function Imprint({ seo }: Props) {
                             <section className="space-y-2">
                                 <h2 className="text-base font-semibold">Team</h2>
                                 <p className="text-muted-foreground">
-                                    Aurélie Tschopp, Tobias Blatter, Martin Hertach, Roman Riesen, David Gerber, Patrick Arnecke, Sebastian Bürgin, Christian Huber
+                                    Aurélie Tschopp, Tobias Blatter, Martin Hertach, Roman Riesen, David Gerner, Patrick Arnecke, Sebastian Bürgin, Christian Huber
                                 </p>
                             </section>
 
