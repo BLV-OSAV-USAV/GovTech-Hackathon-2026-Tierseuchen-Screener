@@ -111,6 +111,7 @@ articles keep the original `source_link`, cached `raw_html_path`, and Markdown
 traceability.
 
 PAFF data is read from the pdfs and analyzed by an llm to filter out relevant information, these data are then displayed in the dashboard when relevant.
+The process is currently quite slow, taking about a minute per PAFF PDF just for the text extraction on a T4 colab instance.
 
 
 ## Ontology und LINDAS
@@ -121,5 +122,5 @@ Desweiteren wurden Schemas für unstrukturierten Daten aus PAFF reports sowie Na
 ## Erweiterungen
 
 - Mehr Datenquellen
-- Historische Daten (z.B: Erster Fall in diesem Administration District), Vergleich Vormonat/Vorjahresmonat
+- Historische Daten (z.B: Erster Fall in diesem `Administrative District`), Vergleich Vormonat/Vorjahresmonat
 - Human in the Loop zur Korrektur der Einschätzung der Wichtigkeit
