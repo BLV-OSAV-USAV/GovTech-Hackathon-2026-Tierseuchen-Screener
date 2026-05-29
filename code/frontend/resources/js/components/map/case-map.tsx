@@ -21,9 +21,9 @@ type Props = {
 
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
-const CH_CENTER: [number, number] = [8.23, 46.82];
 const CH_ZOOM = 7;
-const INITIAL_ZOOM = 4;
+const EUROPE_CENTER: [number, number] = [10, 49];
+const EUROPE_ZOOM = 4.5;
 
 const MAP_STYLE = 'mapbox://styles/mapbox/dark-v11';
 
@@ -64,6 +64,7 @@ function colorMatchExpression(): mapboxgl.ExpressionSpecification {
 export default function CaseMap({ cases, centerLat, centerLng, radiusKm, relevanceContext }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
+    const didInitRef = useRef(true);
 
     const center = centerLat != null && centerLng != null ? { lat: centerLat, lng: centerLng } : null;
     const data = useMemo(
@@ -83,13 +84,16 @@ return;
         const map = new mapboxgl.Map({
             container: containerRef.current,
             style: MAP_STYLE,
-            center: CH_CENTER,
-            zoom: INITIAL_ZOOM,
+            center: EUROPE_CENTER,
+            zoom: EUROPE_ZOOM,
             attributionControl: true,
         });
         mapRef.current = map;
 
         map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-left');
+
+        const ro = new ResizeObserver(() => map.resize());
+        ro.observe(containerRef.current);
 
         map.on('load', () => {
             map.addSource('cases', {
@@ -191,6 +195,7 @@ return;
         });
 
         return () => {
+            ro.disconnect();
             map.remove();
             mapRef.current = null;
         };
@@ -222,6 +227,12 @@ map.once('load', apply);
 return;
 }
 
+        if (didInitRef.current) {
+            didInitRef.current = false;
+
+            return;
+        }
+
         map.flyTo({ center: [centerLng, centerLat], zoom: CH_ZOOM, duration: 800 });
     }, [centerLat, centerLng]);
 
@@ -238,5 +249,5 @@ return;
         );
     }
 
-    return <div ref={containerRef} className="h-full w-full overflow-hidden rounded-md" />;
+    return <div ref={containerRef} className="h-[500px] w-full overflow-hidden rounded-md md:h-full" />;
 }
