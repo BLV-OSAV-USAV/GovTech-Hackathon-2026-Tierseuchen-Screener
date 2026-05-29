@@ -1,0 +1,24 @@
+{
+  "name": "TS-Scanner",
+  "variables": [
+    {
+      "name": "token",
+      "value": "sk-Nyq3HTaFagx-YU0elAjWhA",
+      "type": "text",
+      "enabled": true,
+      "secret": false
+    },
+    {
+      "name": "url",
+      "value": "https://llm.codebar.net",
+      "type": "text",
+      "enabled": true,
+      "secret": false
+    }
+  ],
+  "info": {
+    "type": "bruno-environment",
+    "exportedAt": "2026-05-28T15:14:43.436Z",
+    "exportedUsing": "Bruno/v3.4.2"
+  }
+}

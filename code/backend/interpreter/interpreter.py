@@ -48,7 +48,7 @@ client = OpenAI(
 )
 
 
-def chat(prompt, model="qwen2.5:32b-instruct-q4_K_M", system=None, stream=False, **kwargs):
+def chat(prompt, model="qwen3.5:4b", system=None, stream=False, **kwargs):
     messages = []
     if system:
         messages.append({"role": "system", "content": system})

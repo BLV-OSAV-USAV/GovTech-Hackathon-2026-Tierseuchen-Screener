@@ -1,0 +1,79 @@
+{
+  "info": {
+    "name": "llm.codebar.net",
+    "description": null,
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Models",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "url": {
+          "raw": "{{url}}/v1/models",
+          "protocol": "",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "v1",
+            "models"
+          ],
+          "query": [],
+          "variable": []
+        }
+      }
+    },
+    {
+      "name": "Authenticated Chat",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "",
+        "url": {
+          "raw": "{{url}}/v1/chat/completions",
+          "protocol": "",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "v1",
+            "chat",
+            "completions"
+          ],
+          "query": [],
+          "variable": []
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"model\": \"qwen2.5-coder:32b\",\n    \"messages\": [{\"role\":\"user\",\"content\":\"Reply with exactly: AUTH OK\"}],\n    \"max_tokens\": 10\n  }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "url",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "default"
+    }
+  ]
+}
