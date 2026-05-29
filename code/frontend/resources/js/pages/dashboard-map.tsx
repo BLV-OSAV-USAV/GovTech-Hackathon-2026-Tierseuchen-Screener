@@ -1,5 +1,5 @@
 import { Deferred, Head } from '@inertiajs/react';
-import { Map as MapIcon, List as ListIcon, BarChart3, AlertCircle } from 'lucide-react';
+import { Map as MapIcon, List as ListIcon, BarChart3, FileText, AlertCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 
@@ -7,6 +7,7 @@ import CaseList from '@/components/dashboard/case-list';
 import FilterPanel from '@/components/dashboard/filter-panel';
 import LagebildHeader from '@/components/dashboard/lagebild-header';
 import PlayBar from '@/components/dashboard/play-bar';
+import ReportsView from '@/components/dashboard/reports-view';
 import StatsView from '@/components/dashboard/stats-view';
 import CaseMap from '@/components/map/case-map';
 import ClientOnly from '@/components/map/client-only';
@@ -68,14 +69,14 @@ function DashboardMapBody({
     speciesOptions: speciesOptionsProp,
     subtypeOptions: subtypeOptionsProp,
 }: BodyProps) {
-    const [view, setView] = useState<'map' | 'list' | 'stats'>(() => {
+    const [view, setView] = useState<'map' | 'list' | 'stats' | 'reports'>(() => {
         if (typeof window === 'undefined') {
             return 'map';
         }
 
         const stored = window.localStorage.getItem('ts-scanner:view');
 
-        return stored === 'list' || stored === 'stats' ? stored : 'map';
+        return stored === 'list' || stored === 'stats' || stored === 'reports' ? stored : 'map';
     });
 
     useEffect(() => {
@@ -248,23 +249,31 @@ function DashboardMapBody({
             <div className="flex min-h-[70vh] flex-1 flex-col gap-3 md:min-h-0 md:overflow-hidden">
                 <Tabs
                     value={view}
-                    onValueChange={(v) => setView(v as 'map' | 'list' | 'stats')}
+                    onValueChange={(v) => setView(v as 'map' | 'list' | 'stats' | 'reports')}
                     className="flex min-h-0 flex-1 flex-col gap-3"
                 >
-                    <TabsList>
-                        <TabsTrigger value="map">
-                            <MapIcon />
-                            Karte
-                        </TabsTrigger>
-                        <TabsTrigger value="list">
-                            <ListIcon />
-                            Liste
-                        </TabsTrigger>
-                        <TabsTrigger value="stats">
-                            <BarChart3 />
-                            Statistik
-                        </TabsTrigger>
-                    </TabsList>
+                    <div className="flex gap-4">
+                        <TabsList>
+                            <TabsTrigger value="map">
+                                <MapIcon />
+                                Karte
+                            </TabsTrigger>
+                            <TabsTrigger value="list">
+                                <ListIcon />
+                                Liste
+                            </TabsTrigger>
+                            <TabsTrigger value="stats">
+                                <BarChart3 />
+                                Statistik
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsList>
+                            <TabsTrigger value="reports">
+                                <FileText />
+                                Reports
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
                     <TabsContent value="map" className="flex min-h-0 flex-col">
                         <div className="relative min-h-[60vh] flex-1 overflow-hidden rounded-md border md:min-h-0">
                             <ClientOnly
@@ -307,6 +316,9 @@ function DashboardMapBody({
                             relevanceContext={relevanceContext}
                         />
                     </TabsContent>
+                    <TabsContent value="reports" className="overflow-hidden">
+                        <ReportsView />
+                    </TabsContent>
                 </Tabs>
                 <PlayBar
                     from={dateFrom}
@@ -348,7 +360,7 @@ export default function DashboardMap({
     return (
         <DashboardLayout>
             <Head title="TS-Scanner" />
-            <LagebildHeader title="Tierseuchen Scanner - Govtech2026" />
+            <LagebildHeader title="Tierseuchen Scanner - GovTech2026" />
             {error && (
                 <div className="px-4 pt-4">
                     <Alert variant="destructive">

@@ -145,6 +145,26 @@ def test_build_extraction_prompt_sends_only_relevant_context_and_fulltext():
     assert "abc123" not in prompt
 
 
+def test_gefluegelnews_prompt_and_schema_request_administrative_divisions():
+    config = load_config()
+    prompt_path = config.project_root / "code/backend/interpreter/SystemPromptGN.md"
+    schema_path = config.project_root / "code/backend/interpreter/schema_GN.py"
+
+    prompt = prompt_path.read_text(encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("schema_GN", schema_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    for field_name in (
+        "administrative_division_level_1",
+        "administrative_division_level_2",
+        "administrative_division_level_3",
+    ):
+        assert f"- {field_name} (string)" in prompt
+        assert field_name in module.ExtractionSchema.empty()
+
+
 def test_enrich_records_preserves_record_error_and_continues():
     first = _candidate_record()
     second = {**_candidate_record(), "report_id": "gefluegelnews:second"}
