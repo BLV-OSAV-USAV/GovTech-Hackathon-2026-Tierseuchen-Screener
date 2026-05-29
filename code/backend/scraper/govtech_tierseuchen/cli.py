@@ -145,8 +145,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "extract-reports":
         return _extract_reports(data_dir, args.source, console, config)
     if args.command == "enrich":
-        output_path = Path(args.output) if args.output else None
-        prompt_path = Path(args.prompt) if args.prompt else None
+        output_path = resolve_config_path(args.output, config) if args.output else None
+        prompt_path = resolve_config_path(args.prompt, config) if args.prompt else None
         return _enrich(
             data_dir,
             args.source,
@@ -253,6 +253,26 @@ def _discover(
 ) -> int:
     from govtech_tierseuchen.jsonl import write_jsonl
 
+    try:
+        articles = _discover_articles(source, timeout_seconds, limit, console)
+    except Exception as exc:
+        LOGGER.debug("Discovery failed for %s", source, exc_info=True)
+        console.print(f"[red]Discovery failed for {source}: {exc}[/red]")
+        return 1
+
+    if limit is not None:
+        articles = articles[:limit]
+    write_jsonl(config.output_path(data_dir, source, "manifest"), articles)
+    console.print(f"[green]Discovered {len(articles)} {source} article URLs[/green]")
+    return 0
+
+
+def _discover_articles(
+    source: str,
+    timeout_seconds: float,
+    limit: int | None,
+    console: Console,
+) -> list[Any]:
     if source == "gefluegelnews":
         from govtech_tierseuchen.gefluegelnews import (
             SITEMAP_URL,
@@ -298,9 +318,7 @@ def _discover(
 
     if limit is not None:
         articles = articles[:limit]
-    write_jsonl(config.output_path(data_dir, source, "manifest"), articles)
-    console.print(f"[green]Discovered {len(articles)} {source} article URLs[/green]")
-    return 0
+    return articles
 
 
 def _run_all(
@@ -449,7 +467,12 @@ def _run_parallel_ingest_stages(
                 futures[future] = source
             for future in as_completed(futures):
                 source = futures[future]
-                exit_code = future.result()
+                try:
+                    exit_code = future.result()
+                except Exception as exc:
+                    LOGGER.debug("%s failed for %s", stage, source, exc_info=True)
+                    console.print(f"[red]{stage} failed for {source}: {exc}[/red]")
+                    return 1
                 if exit_code != 0:
                     console.print(
                         f"[red]Stopped at {stage} for {source} with exit code {exit_code}[/red]"
@@ -571,7 +594,7 @@ def _parse(
             continue
         try:
             parsed.append(_parse_row_for_source(source, row, raw_html_path))
-        except (KeyError, ValueError) as exc:
+        except (KeyError, TypeError, ValueError) as exc:
             parse_errors.append(
                 ParseError(
                     source_link=row.get("source_link", ""),

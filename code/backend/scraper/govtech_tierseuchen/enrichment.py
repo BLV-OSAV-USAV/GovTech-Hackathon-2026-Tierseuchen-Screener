@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +12,7 @@ from govtech_tierseuchen.config import AppConfig, resolve_config_path
 from govtech_tierseuchen.jsonl import read_jsonl, write_jsonl
 
 Extractor = Callable[[dict[str, Any]], dict[str, Any]]
+LOGGER = logging.getLogger(__name__)
 
 SEMANTIC_FIELDS = {
     "situation_key",
@@ -93,7 +95,16 @@ def enrich_source(
         prompt_path=prompt_path,
     )
     records = read_jsonl(input_path)
-    enriched = enrich_records(records, extractor=resolved_extractor)
+    resolved_progress_every = (
+        progress_every
+        if progress_every is not None
+        else config.interpreter.progress_every
+    )
+    enriched = enrich_records(
+        records,
+        extractor=resolved_extractor,
+        progress_every=resolved_progress_every,
+    )
     write_jsonl(resolved_output_path, enriched)
     return EnrichmentResult(
         input_path=input_path,
@@ -104,10 +115,14 @@ def enrich_source(
 
 
 def enrich_records(
-    records: list[dict[str, Any]], *, extractor: Extractor
+    records: list[dict[str, Any]],
+    *,
+    extractor: Extractor,
+    progress_every: int | None = None,
 ) -> list[dict[str, Any]]:
     enriched = []
-    for record in records:
+    total = len(records)
+    for index, record in enumerate(records, start=1):
         try:
             labels = extractor(record)
             if not isinstance(labels, dict):
@@ -120,7 +135,15 @@ def enrich_records(
                     "_error": f"extraction: {type(exc).__name__}: {exc}",
                 }
             )
+        if _should_log_progress(index, total, progress_every):
+            LOGGER.info("Enriched %s/%s records", index, total)
     return enriched
+
+
+def _should_log_progress(index: int, total: int, progress_every: int | None) -> bool:
+    if progress_every is None or progress_every <= 0 or total == 0:
+        return False
+    return index % progress_every == 0 or index == total
 
 
 def merge_semantic_fields(

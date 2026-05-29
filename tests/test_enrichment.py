@@ -1,4 +1,7 @@
+import importlib.util
 import json
+import logging
+from types import SimpleNamespace
 from dataclasses import fields
 
 from govtech_tierseuchen.config import load_config
@@ -174,6 +177,27 @@ def test_enrich_source_writes_enriched_jsonl_with_fake_extractor(tmp_path):
     assert rows[0]["disease_name"] == "Avian influenza"
 
 
+def test_enrich_source_logs_progress_at_requested_interval(tmp_path, caplog):
+    config = load_config()
+    source_dir = tmp_path / "gefluegelnews"
+    write_jsonl(
+        source_dir / "disease_reports.jsonl",
+        [_candidate_record(), {**_candidate_record(), "report_id": "second"}],
+    )
+
+    with caplog.at_level(logging.INFO, logger="govtech_tierseuchen.enrichment"):
+        enrich_source(
+            data_dir=tmp_path,
+            source="gefluegelnews",
+            config=config,
+            extractor=lambda record: {"disease_name": "Avian influenza"},
+            progress_every=1,
+        )
+
+    assert "Enriched 1/2 records" in caplog.text
+    assert "Enriched 2/2 records" in caplog.text
+
+
 def test_enrich_command_returns_nonzero_when_llm_env_is_missing(
     monkeypatch, tmp_path, capsys
 ):
@@ -186,3 +210,48 @@ def test_enrich_command_returns_nonzero_when_llm_env_is_missing(
     assert exit_code == 1
     assert "Missing required environment variable:" in captured.out
     assert "TS_SCREENER_LLM_BASE_URL" in captured.out
+
+
+def test_legacy_interpreter_resolves_relative_prompt_and_output_from_project_root(
+    monkeypatch, tmp_path
+):
+    config = load_config()
+    module_path = config.project_root / "code/backend/interpreter/interpreter.py"
+    spec = importlib.util.spec_from_file_location("legacy_interpreter", module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    seen = {}
+
+    def fake_enrich_source(**kwargs):
+        seen.update(kwargs)
+        return SimpleNamespace(
+            record_count=0,
+            output_path=kwargs["output_path"],
+            error_count=0,
+        )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(module, "enrich_source", fake_enrich_source)
+
+    exit_code = module.main(
+        [
+            "gefluegelnews",
+            "--data-dir",
+            str(tmp_path),
+            "--prompt",
+            "code/backend/interpreter/SystemPromptGN.md",
+            "--output",
+            "data/unstructured/gefluegelnews/custom.enriched.jsonl",
+        ]
+    )
+
+    assert exit_code == 0
+    assert (
+        seen["prompt_path"]
+        == config.project_root / "code/backend/interpreter/SystemPromptGN.md"
+    )
+    assert (
+        seen["output_path"]
+        == config.project_root / "data/unstructured/gefluegelnews/custom.enriched.jsonl"
+    )

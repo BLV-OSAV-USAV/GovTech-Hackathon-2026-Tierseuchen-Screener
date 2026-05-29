@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
 from govtech_tierseuchen.config import load_config, resolve_config_path
 from govtech_tierseuchen.enrichment import enrich_source
@@ -28,8 +27,8 @@ def main(argv: list[str] | None = None) -> int:
         data_dir=data_dir,
         source=args.source,
         config=config,
-        prompt_path=Path(args.prompt) if args.prompt else None,
-        output_path=Path(args.output) if args.output else None,
+        prompt_path=resolve_config_path(args.prompt, config) if args.prompt else None,
+        output_path=resolve_config_path(args.output, config) if args.output else None,
         progress_every=args.progress_every,
     )
     print(
