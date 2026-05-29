@@ -3,6 +3,8 @@
 [Challenge-Link](https://govtech.digisus-lab.ch/project/20)
 
 
+
+
 ## Problem und Zielgruppe
 
 Die internationale Tierseuchenlage verändert sich laufend und relevante Informationen sind auf viele unterschiedliche Quellen verteilt. Heute müssen Fachpersonen diese Informationen manuell suchen, lesen, bewerten und zusammenführen. Das ist zeitaufwendig, fehleranfällig und erschwert eine schnelle Reaktion auf neue Risiken.
@@ -75,6 +77,12 @@ Der Nutzen wäre unter anderem:
 
 Nach dem Hackathon können erfolgreiche Ideen und Prototypen in bestehende Arbeiten und Projekte des Bundesamts BLV zur Erneuerung des Radarbulletin-Prozesses einfliessen. Ziel ist es, geeignete Ansätze schrittweise weiterzuentwickeln und in bestehende Abläufe zu integrieren.
 
+
+# Lösung
+
+[Prototype-Link](https://app.ts-scanner.ch/dashboard/map)
+
+
 ## News Scraper Prototype
 
 The news scraper is staged so discovery, fetching, parsing, filtering, and report
@@ -101,3 +109,15 @@ Raw HTML, raw JSON, and generated JSONL files are local artifacts under
 articles keep the original `source_link`, cached `raw_html_path`, and Markdown
 `fulltext`; extracted `DiseaseReport` records carry those fields forward for
 traceability.
+
+
+PAFF data is read from the pdfs and analyzed by an llm to filter out relevant information, these data are then displayed in the dashboard when relevant.
+
+
+## Ontology and LINDAS
+
+
+## Erweiterungen
+
+- Historische Daten (z.B: Erster Fall in diesem Administration District), Vergleich Vormonat/Vorjahresmonat
+- Human in the Loop zur Korrektur der Einschätzung der Wichtigkeit
