@@ -2,6 +2,7 @@ import { ArrowUpDown, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react';
 
 import CaseDetailDialog from '@/components/dashboard/case-detail-dialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Table,
@@ -426,13 +427,13 @@ setPage(totalPages);
                             <TableCell>{c.source ?? '—'}</TableCell>
                             <TableCell className="tabular-nums">~{Math.round(c.distance)} km</TableCell>
                             <TableCell className="text-right">
-                                <button
-                                    type="button"
+                                <Button
+                                    size="sm"
+                                    variant="outline"
                                     onClick={() => setDetail(c)}
-                                    className="text-sm text-primary hover:underline"
                                 >
-                                    Details ›
-                                </button>
+                                    Details
+                                </Button>
                             </TableCell>
                         </TableRow>
                     ))}
