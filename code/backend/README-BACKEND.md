@@ -26,6 +26,7 @@ manifest.jsonl
   -> disease_reports.enriched.jsonl
   -> lindas/data/rdf/tierseuchen-screener.ttl
   -> lindas/data/csv/disease_reports.csv
+  -> lindas/data/csv/disease_reports_mock_data_.csv
 ```
 
 The deterministic scraper owns discovery, fetching, parsing, relevance rules,
@@ -116,12 +117,14 @@ Per-source files live under `data/unstructured/<source>/` by default:
 Final combined outputs:
 
 - `lindas/data/rdf/tierseuchen-screener.ttl`
-- `lindas/data/csv/disease_reports.csv`
+- `lindas/data/csv/disease_reports.csv` with the backend `DiseaseReport` fields
+- `lindas/data/csv/disease_reports_mock_data_.csv` with the frontend `reports`
+  table schema
 
 `extract-reports` reads `articles.jsonl` and re-runs the relevance rules; it
 does not consume `disease_articles.jsonl`. `export-final` reads enriched JSONL
-from the selected sources and writes one combined Turtle file plus one combined
-CSV file.
+from the selected sources and writes one combined Turtle file plus both combined
+CSV files.
 
 ## Field Contract
 
@@ -144,17 +147,18 @@ prevention measures, and research references. Unsupported fields should remain
 
 ## Enrichment
 
-Configure live enrichment with the environment variable names from `config.yaml`
-(defaults shown):
+Configure live enrichment with the OpenRouter API key in `code/backend/.env`:
 
 ```bash
-export TS_SCREENER_LLM_BASE_URL="https://example-llm-endpoint/v1"
-export TS_SCREENER_LLM_API_KEY="..."
+OPENROUTER_API_KEY="..."
 ```
 
 `ts-screener enrich` sends candidate context, evidence snippets, rule hints, and
-`fulltext` to `/chat/completions`. It records per-record extraction failures in
-`_error` and continues the batch. The legacy
+`fulltext` through the OpenAI SDK against OpenRouter's OpenAI-compatible
+endpoint. Set `TS_SCREENER_LLM_BASE_URL` only when overriding the default
+`https://openrouter.ai/api/v1` endpoint. LLM calls run in parallel using
+`interpreter.workers` from `config.yaml` (default: `20`). It records per-record
+extraction failures in `_error` and continues the batch. The legacy
 `code/backend/interpreter/interpreter.py` script is a wrapper around the
 packaged enrichment module.
 
