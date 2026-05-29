@@ -87,7 +87,6 @@ class EventsSeeder extends Seeder
             ['Gehaltene Vögel'],
         );
         $subtypes = ['H5N1', 'H5N1', 'H5N1', 'H5N1', 'H5N1', 'H5N5'];
-        $sources = ['BLV', 'Kantonstierarzt', 'Labor', 'Tierarzt', 'Bürger-Meldung'];
 
         // Bird-migration flyways. Each stream is a polyline of waypoints (t in [0, 1],
         // early -> late) carrying the virus from a northern start to a destination.
@@ -224,7 +223,7 @@ class EventsSeeder extends Seeder
                 'subtype' => $subtypes[array_rand($subtypes)],
                 'species' => $species[array_rand($species)],
                 'population' => $population,
-                'source' => $sources[array_rand($sources)],
+                'source' => 'ADIS',
                 'external_id' => 'HPAI-2026-'.str_pad((string) $i, 6, '0', STR_PAD_LEFT),
                 'occurred_at' => $occurredAt,
                 'admin_level_1' => $admin1,
