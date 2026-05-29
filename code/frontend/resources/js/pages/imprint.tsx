@@ -25,7 +25,13 @@ export default function Imprint({ seo }: Props) {
             prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
         );
     };
-    const [subtype, setSubtype] = useState('H5N1');
+    const [subtype, setSubtype] = useState<string[]>([]);
+
+    const toggleSubtype = (s: string) => {
+        setSubtype((prev) =>
+            prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
+        );
+    };
     const [center, setCenter] = useState('Bern');
     const [radiusKm, setRadiusKm] = useState(50);
 
@@ -53,7 +59,10 @@ export default function Imprint({ seo }: Props) {
                     onResetSpecies={() => setSpecies([])}
                     speciesOptions={[]}
                     subtype={subtype}
-                    onSubtypeChange={setSubtype}
+                    onToggleSubtype={toggleSubtype}
+                    onResetSubtype={() => setSubtype([])}
+                    subtypeOptions={[]}
+                    populationOptions={[]}
                     center={center}
                     onCenterChange={setCenter}
                     radiusKm={radiusKm}

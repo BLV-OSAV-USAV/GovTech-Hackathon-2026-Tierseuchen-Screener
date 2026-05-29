@@ -13,6 +13,7 @@ from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree
 
+from govtech_tierseuchen.config import load_config
 from govtech_tierseuchen.models import (
     DiscoveredArticle,
     FetchedArticle,
@@ -22,12 +23,25 @@ from govtech_tierseuchen.models import (
 
 SOURCE_ID = "gefluegelnews"
 SOURCE_NAME = "Gefluegelnews"
-BASE_URL = "https://www.gefluegelnews.de"
-SITEMAP_URL = f"{BASE_URL}/sitemap.xml"
-NEWS_RSS_URL = f"{BASE_URL}/news/rss"
-DEFAULT_USER_AGENT = (
-    "GovTech-Tierseuchen prototype scraper (+local research; respects robots.txt)"
+
+
+def _required_source_value(value: str | None, key: str) -> str:
+    if value is None:
+        raise RuntimeError(f"Missing {SOURCE_ID}.{key} in config.yaml")
+    return value
+
+
+_SOURCE_CONFIG = load_config().sources[SOURCE_ID]
+BASE_URL = _required_source_value(_SOURCE_CONFIG.base_url, "base_url")
+SITEMAP_URL = (
+    f"{BASE_URL}{_required_source_value(_SOURCE_CONFIG.sitemap_path, 'sitemap_path')}"
 )
+ARTICLE_PATH_PREFIX = _required_source_value(
+    _SOURCE_CONFIG.article_path_prefix, "article_path_prefix"
+)
+ALLOWED_NETLOC = urlparse(BASE_URL).netloc
+DEFAULT_USER_AGENT = _required_source_value(_SOURCE_CONFIG.user_agent, "user_agent")
+RAW_SUBDIR = _required_source_value(_SOURCE_CONFIG.raw_subdir, "raw_subdir")
 
 GERMAN_MONTHS = {
     "Januar": 1,
@@ -59,8 +73,8 @@ def parse_sitemap_articles(
             continue
         source_link = loc_element.text.strip()
         parsed = urlparse(source_link)
-        if parsed.netloc != "www.gefluegelnews.de" or not parsed.path.startswith(
-            "/article/"
+        if parsed.netloc != ALLOWED_NETLOC or not parsed.path.startswith(
+            ARTICLE_PATH_PREFIX
         ):
             continue
         if source_link in discovered:
@@ -98,7 +112,7 @@ def cache_filename_for_url(source_link: str) -> str:
 
 
 def raw_html_path(base_dir: Path, source_link: str) -> Path:
-    return base_dir / SOURCE_ID / "raw_html" / cache_filename_for_url(source_link)
+    return base_dir / SOURCE_ID / RAW_SUBDIR / cache_filename_for_url(source_link)
 
 
 @dataclass
@@ -386,13 +400,13 @@ def _validate_article_source_link(source_link: str) -> str | None:
     parsed = urlparse(source_link)
     requirement = (
         "Gefluegelnews article URLs must use https, be hosted on "
-        "www.gefluegelnews.de, and use the /article/ path."
+        f"{ALLOWED_NETLOC}, and use the {ARTICLE_PATH_PREFIX} path."
     )
     if parsed.scheme != "https":
         return requirement
-    if parsed.netloc != "www.gefluegelnews.de":
+    if parsed.netloc != ALLOWED_NETLOC:
         return requirement
-    if not parsed.path.startswith("/article/"):
+    if not parsed.path.startswith(ARTICLE_PATH_PREFIX):
         return requirement
     return None
 
