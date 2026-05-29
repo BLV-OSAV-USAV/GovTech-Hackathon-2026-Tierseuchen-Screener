@@ -20,6 +20,9 @@ def test_export_records_to_csv_writes_combined_file(tmp_path):
             "source_publication_date": "2026-05-20",
             "disease_name": "Avian influenza",
             "country_or_territory": "Poland",
+            "administrative_division_level_1": "Wielkopolskie",
+            "administrative_division_level_2": "Poznan",
+            "administrative_division_level_3": "Example district",
             "is_in_europe": True,
             "relevance_level": "high",
             "control_measures": ["surveillance zone"],
@@ -53,6 +56,9 @@ def test_export_records_to_csv_writes_combined_file(tmp_path):
     assert rows[0]["report_id"] == "gefluegelnews:polen"
     assert rows[1]["source_id"] == "padi_web"
     assert rows[0]["is_in_europe"] == "true"
+    assert rows[0]["administrative_division_level_1"] == "Wielkopolskie"
+    assert rows[0]["administrative_division_level_2"] == "Poznan"
+    assert rows[0]["administrative_division_level_3"] == "Example district"
     assert json.loads(rows[0]["control_measures"]) == ["surveillance zone"]
     assert json.loads(rows[0]["prevention_measures"]) == [
         {"prevention_type": "biosecurity", "text": "enhanced biosecurity"}
