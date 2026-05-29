@@ -87,6 +87,21 @@ Useful options:
 Defaults live in repository-root `config.yaml`. Relative paths resolve from the
 repository root, not from the current shell directory.
 
+If Gefluegelnews shows unexpectedly few disease reports while `articles.jsonl`
+contains many relevant-looking articles, rebuild the deterministic relevance
+outputs before changing terms:
+
+```bash
+uv run ts-screener filter-disease gefluegelnews --force
+uv run ts-screener extract-reports gefluegelnews --force
+```
+
+The incremental state can mark all articles current even when
+`disease_articles.jsonl` or `disease_reports.jsonl` is stale from an earlier
+partial run. Single weak terms such as `Biosicherheit`, `Tierseuche`,
+`Ausbruch`, and `Keulung` can also create false positives; treat them as context
+signals unless paired with a disease anchor.
+
 ## Sources
 
 - `gefluegelnews`: discovers article URLs from the configured sitemap, caches
