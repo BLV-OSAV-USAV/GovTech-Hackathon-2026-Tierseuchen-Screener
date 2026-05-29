@@ -78,11 +78,17 @@ such as title, publication date, metadata, and Markdown `fulltext`.
 reads `articles.jsonl`, keeps only articles that match disease terms, and stores
 each article together with matched terms, score, and evidence snippets.
 
-`disease_reports.jsonl` is the structured candidate layer: `ts extract-reports`
-reads `articles.jsonl`, re-runs the same relevance filter, and turns relevant
-articles into candidate `DiseaseReport` records for RDF export. It does not
-currently read `disease_articles.jsonl`; that file is an inspectable side
-artifact for checking why articles were considered relevant.
+`disease_reports.jsonl` is the candidate layer: `ts extract-reports` reads
+`articles.jsonl`, re-runs the same relevance filter, and turns relevant articles
+into stable `DiseaseReport` candidates. This layer intentionally keeps source
+provenance, stable IDs, publication/retrieval dates, full text, evidence
+snippets, filter score/terms, exact rule hits such as H5N1 subtype mentions, and
+coarse rule control-measure hints. Semantic enrichment fields such as final
+disease/country resolution, consequence interpretation, prevention
+classification, severity, and reach are left empty for the interpreter/enrichment
+layer. `ts extract-reports` does not currently read `disease_articles.jsonl`;
+that file is an inspectable side artifact for checking why articles were
+considered relevant.
 
 PADI-web additionally caches API detail payloads under `raw_json/`. These local
 scraper artifacts are ignored by git.
@@ -91,8 +97,9 @@ Finalized RDF export files are written under `lindas/data/rdf/<source>/`, for
 example `lindas/data/rdf/padi_web/padi_web.ttl`:
 
 - `<source>.ttl`: LiNDAS-ready Turtle for news documents, extraction
-  candidates, evidence snippets, outbreak situations, assessments, consequences,
-  prevention measures, and research references
+  candidates, evidence snippets, and any enriched outbreak situations,
+  assessments, consequences, prevention measures, or research references present
+  in the input records
 
 ## Verify
 
